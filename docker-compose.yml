@@ -1,0 +1,10 @@
+version: "3"
+services:
+  discord-bot:
+    container_name: town-manager-bot
+    build: .
+    restart: always
+    environment:
+      - DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+    volumes:
+      - ./town_manager.db:/app/town_manager.db
