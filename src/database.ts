@@ -4,50 +4,53 @@ export const db = new Database("town_manager.db");
 
 db.serialize(() => {
     db.run(`
-    CREATE TABLE IF NOT EXISTS milestones (
-      structure_id INTEGER,
-      level INTEGER,
-      votes_required INTEGER,
-      PRIMARY KEY (structure_id, level),
-      FOREIGN KEY (structure_id) REFERENCES structures(id)
-    )
-  `);
+        CREATE TABLE IF NOT EXISTS milestones (
+            structure_id INTEGER,
+            level INTEGER,
+            votes_required INTEGER,
+            PRIMARY KEY (structure_id, level),
+            FOREIGN KEY (structure_id) REFERENCES structures(id)
+        )
+    `);
 
     db.run(`
-    CREATE TABLE IF NOT EXISTS structures (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT UNIQUE NOT NULL,
-      level INTEGER DEFAULT 1,
-      max_level INTEGER DEFAULT 10,
-      last_reset_adventure INTEGER DEFAULT 0  -- ✅ Tracks last level-up
-    )
-  `);
+        CREATE TABLE IF NOT EXISTS structures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            level INTEGER DEFAULT 1,
+            max_level INTEGER DEFAULT 10,
+            last_reset_adventure INTEGER DEFAULT 0,
+            category TEXT DEFAULT 'General'
+        )
+    `);
 
     db.run(`
-    CREATE TABLE IF NOT EXISTS votes (
-      user_id TEXT,
-      structure_id INTEGER,
-      adventure_id INTEGER,
-      votes INTEGER DEFAULT 1,  -- ✅ Added column to store vote count
-      PRIMARY KEY (user_id, adventure_id),
-      FOREIGN KEY (structure_id) REFERENCES structures(id)
-    )
-  `);
+        CREATE TABLE IF NOT EXISTS votes (
+            user_id TEXT,
+            structure_id INTEGER,
+            adventure_id INTEGER,
+            votes INTEGER DEFAULT 1,  -- ✅ Added column to store vote count
+            PRIMARY KEY (user_id, adventure_id),
+            FOREIGN KEY (structure_id) REFERENCES structures(id)
+        )
+    `);
 
     db.run(`
-    CREATE TABLE IF NOT EXISTS adventure (
-      id INTEGER PRIMARY KEY AUTOINCREMENT
-    )
-  `);
+        CREATE TABLE IF NOT EXISTS adventure (
+            id INTEGER PRIMARY KEY AUTOINCREMENT
+        )
+    `);
 
     db.run(`
     CREATE TABLE IF NOT EXISTS history (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      type TEXT NOT NULL,
-      description TEXT NOT NULL,
-      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        action_type TEXT NOT NULL,
+        description TEXT NOT NULL,
+        user TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
     )
-  `);
+`);
+
 
     // ✅ Ensure last_reset_adventure exists in existing databases
     db.all("PRAGMA table_info(structures)", (err, rows: { name: string }[]) => {
@@ -122,6 +125,32 @@ db.serialize(() => {
             );
         } else {
             console.log("✅ votes column already exists.");
+        }
+    });
+
+    // ✅ Ensure category column exists for existing databases
+    db.all("PRAGMA table_info(structures)", (err, rows: { name: string }[]) => {
+        if (err) {
+            console.error("❌ Error checking table schema:", err);
+            return;
+        }
+
+        const columnExists = rows.some((row) => row.name === "category");
+
+        if (!columnExists) {
+            console.log("⚠️ Adding missing column: category");
+            db.run(
+                "ALTER TABLE structures ADD COLUMN category TEXT DEFAULT 'General'",
+                (alterErr) => {
+                    if (alterErr) {
+                        console.error("❌ Error adding category column:", alterErr);
+                    } else {
+                        console.log("✅ Successfully added category column.");
+                    }
+                },
+            );
+        } else {
+            console.log("✅ Category column already exists.");
         }
     });
 });

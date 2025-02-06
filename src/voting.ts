@@ -7,6 +7,7 @@ import {
     Interaction,
 } from "discord.js";
 import { Database } from "sqlite3";
+import { logHistory } from "./history";
 
 // ✅ Define structure type explicitly
 type Structure = {
@@ -71,6 +72,11 @@ export async function startVoting(
                 });
 
                 message.reply("📨 Sent voting messages!");
+                logHistory(
+                    db,
+                    "Voting Started",
+                    `Voting started for adventure ${adventureId} by ${message.author.tag} with players: ${players.join(", ")}`,
+                );
             },
         );
     });
@@ -162,6 +168,12 @@ export async function handleVote(interaction: Interaction, db: Database) {
                                     });
                                 }
 
+                                logHistory(
+                                    db,
+                                    "Vote Updated",
+                                    `${interaction.user.tag} changed vote to ${row.name} in adventure ${adventureId}`,
+                                );
+
                                 interaction.followUp({
                                     content: `🔄 Vote changed to **${row.name}**!`,
                                     ephemeral: true,
@@ -206,6 +218,12 @@ export async function handleVote(interaction: Interaction, db: Database) {
                                         ephemeral: true,
                                     });
                                 }
+
+                                logHistory(
+                                    db,
+                                    "Vote Registered",
+                                    `${interaction.user.tag} voted for ${row.name} in adventure ${adventureId}`,
+                                );
 
                                 interaction.followUp({
                                     content: `✅ Vote registered for **${row.name}**!`,
