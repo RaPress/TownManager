@@ -11,6 +11,7 @@ import {
     checkVotes,
     setMilestones,
 } from "./structures";
+import { fetchHistory } from "./history"; // ✅ Import history fetching
 
 export function registerCommands(bot: Client, db: Database) {
     bot.on("messageCreate", async (message: Message) => {
@@ -27,7 +28,7 @@ export function registerCommands(bot: Client, db: Database) {
                 await addStructure(message, args, db);
                 break;
             case "!structures":
-                await listStructures(message, db);
+                await listStructures(message, args, db);
                 break;
             case "!check_votes":
                 await checkVotes(message, args, db);
@@ -44,6 +45,9 @@ export function registerCommands(bot: Client, db: Database) {
                 break;
             case "!end_adventure":
                 await endAdventure(message, args, db);
+                break;
+            case "!history":
+                await fetchHistory(message, db);
                 break;
         }
     });

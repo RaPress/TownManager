@@ -7,6 +7,7 @@ import {
     EmbedBuilder,
 } from "discord.js";
 import { Database } from "sqlite3";
+import { logHistory } from "./history"; // ✅ Import history logging
 
 // ✅ Step 1: Request Upgrade Confirmation
 export async function requestUpgradeConfirmation(
@@ -74,7 +75,7 @@ export async function requestUpgradeConfirmation(
                                 .setTitle("⚠ Upgrade Confirmation ⚠")
                                 .setDescription(
                                     `Are you sure you want to upgrade **${structure.name}** from Level **${structure.level}** to Level **${structure.level + 1}**?\n\n` +
-                                        `This will consume **${milestone.votes_required}** votes.`,
+                                    `This will consume **${milestone.votes_required}** votes.`,
                                 )
                                 .setColor(0xf1c40f);
 
@@ -98,6 +99,12 @@ export async function requestUpgradeConfirmation(
                                 embeds: [embed],
                                 components: [actionRow],
                             });
+
+                            logHistory(
+                                db,
+                                "Upgrade Requested",
+                                `${message.author.tag} requested upgrade for ${structure.name} (Lv. ${structure.level} → ${structure.level + 1})`,
+                            );
                         },
                     );
                 },
@@ -106,6 +113,7 @@ export async function requestUpgradeConfirmation(
     );
 }
 
+// ✅ Step 2: Handle Upgrade Confirmation or Cancellation
 export async function handleUpgradeInteraction(
     interaction: ButtonInteraction,
     db: Database,
@@ -134,6 +142,11 @@ export async function handleUpgradeInteraction(
 
     if (action === "cancel_upgrade") {
         console.log("⚠ Upgrade canceled.");
+        logHistory(
+            db,
+            "Upgrade Canceled",
+            `${interaction.user.tag} canceled upgrade for Structure ID: ${structureId}`,
+        );
         return interaction.reply({
             content: "❌ Upgrade canceled.",
             ephemeral: true,
@@ -253,6 +266,12 @@ export async function handleUpgradeInteraction(
 
                                         console.log(
                                             `🎉 SUCCESS: ${structure.name} upgraded to Level ${structure.level + 1}`,
+                                        );
+
+                                        logHistory(
+                                            db,
+                                            "Structure Upgraded",
+                                            `${interaction.user.tag} upgraded ${structure.name} to Level ${structure.level + 1}`,
                                         );
 
                                         db.run(
