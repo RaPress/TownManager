@@ -40,6 +40,15 @@ db.serialize(() => {
     )
   `);
 
+    db.run(`
+    CREATE TABLE IF NOT EXISTS history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      description TEXT NOT NULL,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
     // ✅ Ensure last_reset_adventure exists in existing databases
     db.all("PRAGMA table_info(structures)", (err, rows: { name: string }[]) => {
         if (err) {
