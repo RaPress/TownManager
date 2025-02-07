@@ -14,49 +14,41 @@ export function logHistory(
     );
 }
 
-// ✅ Fetches history with user tracking
+// ✅ Fetches history with user tracking (FIXED column name issue)
 export async function fetchHistory(message: Message, db: Database) {
     const args = message.content.split(" ").slice(1);
     const filter = args.join(" ").toLowerCase().trim();
 
-    let query = "SELECT event, description, user, timestamp FROM history ORDER BY timestamp DESC LIMIT 10"; // Default: Last 10 logs
+    let query = "SELECT * FROM history ORDER BY timestamp DESC LIMIT 10"; // Default: Last 10 logs
     let filterText = "🔍 **Recent Town History:**";
 
     if (filter === "structures") {
         query =
-            "SELECT event, description, user, timestamp FROM history WHERE action_type = 'upgrade' ORDER BY timestamp DESC LIMIT 10";
+            "SELECT * FROM history WHERE action_type = 'Structure Upgraded' ORDER BY timestamp DESC LIMIT 10";
         filterText = "🏗 **Recent Structure Upgrades:**";
     } else if (filter === "votes") {
         query =
-            "SELECT event, description, user, timestamp FROM history WHERE action_type = 'vote' ORDER BY timestamp DESC LIMIT 10";
+            "SELECT * FROM history WHERE action_type = 'Vote Registered' OR action_type = 'Vote Updated' ORDER BY timestamp DESC LIMIT 10";
         filterText = "🗳 **Recent Voting Records:**";
     } else if (filter === "milestones") {
         query =
-            "SELECT event, description, user, timestamp FROM history WHERE action_type = 'milestone' ORDER BY timestamp DESC LIMIT 10";
+            "SELECT * FROM history WHERE action_type = 'Milestones Set' ORDER BY timestamp DESC LIMIT 10";
         filterText = "📏 **Recent Milestone Changes:**";
     }
 
-    db.all(
-        query,
-        [],
-        (err, rows: { event: string; description: string; user: string; timestamp: string }[]) => {
-            if (err) {
-                console.error("❌ Database error while fetching history:", err);
-                return message.reply("❌ Database error.");
-            }
+    db.all(query, [], (err, rows: { action_type: string; description: string; user: string; timestamp: string }[]) => {
+        if (err || rows.length === 0) {
+            console.error("❌ Database error while fetching history:", err);
+            return message.reply("❌ No history records found.");
+        }
 
-            if (!rows || rows.length === 0) {
-                return message.reply("📜 No history found.");
-            }
+        const historyEntries = rows
+            .map(
+                (row) =>
+                    `📜 **${row.timestamp}** → ${row.description} *(by ${row.user})*`
+            )
+            .join("\n");
 
-            const historyEntries = rows
-                .map(
-                    (row) =>
-                        `📜 **${row.timestamp}** → ${row.description} *(by ${row.user})*`
-                )
-                .join("\n");
-
-            message.reply(`${filterText}\n${historyEntries}`);
-        },
-    );
+        message.reply(`${filterText}\n${historyEntries}`);
+    });
 }
