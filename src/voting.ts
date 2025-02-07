@@ -20,7 +20,7 @@ export async function startVoting(
     message: Message,
     players: string[],
     db: Database,
-    guildId: string // ✅ Added `guild_id`
+    guildId: string
 ) {
     db.run(
         "INSERT INTO adventure (guild_id) VALUES (?)",
@@ -80,7 +80,8 @@ export async function startVoting(
                         db,
                         "Voting Started",
                         `Voting started for adventure ${adventureId} with players: ${players.join(", ")}`,
-                        message.author.tag
+                        message.author.tag,
+                        guildId
                     );
                 },
             );
@@ -182,7 +183,8 @@ export async function handleVote(
                                     db,
                                     "Vote Updated",
                                     `${interaction.user.tag} changed vote to ${row.name} in adventure ${adventureId}`,
-                                    interaction.user.tag
+                                    interaction.user.tag,
+                                    guildId
                                 );
 
                                 interaction.followUp({
@@ -234,7 +236,8 @@ export async function handleVote(
                                     db,
                                     "Vote Registered",
                                     `${interaction.user.tag} voted for ${row.name} in adventure ${adventureId}`,
-                                    interaction.user.tag
+                                    interaction.user.tag,
+                                    guildId
                                 );
 
                                 interaction.followUp({

@@ -19,10 +19,10 @@ export async function addStructure(
     message: Message,
     args: string[],
     db: Database,
+    guildId: string
 ) {
     const structureName = args[0]?.trim();
     const category = args.slice(1).join(" ").trim() || "General";
-    const guildId = message.guild?.id;
 
     if (!guildId) return message.reply("❌ Unable to determine server.");
     if (!structureName) {
@@ -97,8 +97,8 @@ export async function checkVotes(
     message: Message,
     args: string[],
     db: Database,
+    guildId: string
 ) {
-    const guildId = message.guild?.id;
     if (!guildId) return message.reply("❌ Unable to determine server.");
 
     if (args.length === 0) {

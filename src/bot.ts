@@ -57,7 +57,8 @@ bot.on("interactionCreate", async (interaction: Interaction) => {
             );
             await handleUpgradeInteraction(
                 interaction as ButtonInteraction,
-                db
+                db,
+                guildId
             );
         } else {
             console.warn("⚠ Button clicked but no handler exists for it.");

@@ -108,7 +108,8 @@ export async function requestUpgradeConfirmation(
                                 db,
                                 "Upgrade Requested",
                                 `${message.author.tag} requested upgrade for ${structure.name} (Lv. ${structure.level} → ${structure.level + 1})`,
-                                message.author.tag
+                                message.author.tag,
+                                guildId
                             );
                         },
                     );
@@ -122,6 +123,7 @@ export async function requestUpgradeConfirmation(
 export async function handleUpgradeInteraction(
     interaction: ButtonInteraction,
     db: Database,
+    guildId: string
 ) {
     if (!interaction.isButton()) return;
 
@@ -142,7 +144,6 @@ export async function handleUpgradeInteraction(
 
     const action = match[1]; // "confirm_upgrade" or "cancel_upgrade"
     const structureId = match[2]; // The actual structure ID
-    const guildId = match[3]; // ✅ Extract `guild_id`
 
     console.log(`🔍 Parsed action: ${action}, Structure ID: ${structureId}, Guild ID: ${guildId}`);
 
@@ -152,7 +153,8 @@ export async function handleUpgradeInteraction(
             db,
             "Upgrade Canceled",
             `${interaction.user.tag} canceled upgrade for Structure ID: ${structureId}`,
-            interaction.user.tag
+            interaction.user.tag,
+            guildId
         );
         return interaction.reply({
             content: "❌ Upgrade canceled.",
