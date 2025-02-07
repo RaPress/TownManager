@@ -229,7 +229,8 @@ export async function handleUpgradeInteraction(
                                     db,
                                     "Structure Upgraded",
                                     `${interaction.user.tag} upgraded ${structure.name} to Level ${structure.level + 1}`,
-                                    interaction.user.tag
+                                    interaction.user.tag,
+                                    guildId
                                 );
 
                                 db.run(
