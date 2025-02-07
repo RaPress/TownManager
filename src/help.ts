@@ -33,8 +33,12 @@ const commandDescriptions: Record<string, { description: string; usage: string }
         description: "Upgrades a structure if enough votes exist.",
         usage: "Usage: `!upgrade <structure_name>`"
     },
+    milestones: {
+        description: "Lists milestone votes required for structure level-ups.",
+        usage: "Usage:\n  • `!milestones` → Lists all structure milestones.\n  • `!milestones <structure_name>` → Shows votes required per level."
+    },
     set_milestones: {
-        description: "Sets milestone votes required for structure level-ups.",
+        description: "Sets milestone vote requirements for leveling up a structure.",
         usage: "Usage: `!set_milestones <structure_name> <votes_level_2> <votes_level_3> ...`"
     },
     end_adventure: {

@@ -1,4 +1,9 @@
-import { Client, Message, Interaction, ButtonInteraction } from "discord.js";
+import {
+    Client,
+    Message,
+    Interaction,
+    ButtonInteraction
+} from "discord.js";
 import { Database } from "sqlite3";
 import { startVoting, handleVote } from "./voting";
 import {
@@ -9,9 +14,9 @@ import {
     addStructure,
     listStructures,
     checkVotes,
-    setMilestones,
 } from "./structures";
-import { fetchHistory } from "./history"; // ✅ Import history fetching
+import { fetchHistory } from "./history";
+import { setMilestones, listMilestones } from "./milestones";
 
 export function registerCommands(bot: Client, db: Database) {
     bot.on("messageCreate", async (message: Message) => {
@@ -42,6 +47,9 @@ export function registerCommands(bot: Client, db: Database) {
                 break;
             case "!set_milestones":
                 await setMilestones(message, args, db);
+                break;
+            case "!milestones":
+                await listMilestones(message, args, db);
                 break;
             case "!end_adventure":
                 await endAdventure(message, args, db);
