@@ -45,6 +45,7 @@ export async function addStructure(
                 db,
                 "Structure Added",
                 `${message.author.tag} added structure '${structureName}' in category '${category}'`,
+                message.author.tag
             );
         },
     );
@@ -79,6 +80,7 @@ export async function listStructures(message: Message, args: string[], db: Datab
             db,
             "Structures Listed",
             `${message.author.tag} listed structures in category '${categoryFilter || "All"}'.`,
+            message.author.tag
         );
     });
 }
@@ -113,6 +115,7 @@ export async function checkVotes(
                     db,
                     "Votes Checked",
                     `${message.author.tag} checked votes for all structures.`,
+                    message.author.tag
                 );
             },
         );
@@ -181,6 +184,7 @@ export async function checkVotes(
                             db,
                             "Votes Checked",
                             `${message.author.tag} checked votes for structure '${structure.name}': ${totalVotes} votes.`,
+                            message.author.tag
                         );
                     },
                 );
@@ -231,6 +235,7 @@ export async function setMilestones(
                 db,
                 "Milestones Set",
                 `${message.author.tag} set milestones for '${structureName}': ${milestoneVotes.join(", ")} votes per level.`,
+                message.author.tag
             );
         },
     );
