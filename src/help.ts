@@ -15,21 +15,45 @@ export function registerHelpCommand(bot: Client) {
     });
 }
 
-// ✅ Updated command descriptions with latest features
-const commandDescriptions: Record<string, string> = {
-    add_structure: "Adds a new structure to the town. Usage: `!add_structure <name> [category]`",
-    structures: "Lists all structures and their levels. Optionally filter by category. Usage: `!structures [category]`",
-    check_votes: "Checks votes for a structure. Usage: `!check_votes <structure_name>`",
-    upgrade: "Upgrades a structure if enough votes exist. Usage: `!upgrade <structure_name>`",
-    set_milestones: "Sets milestone votes required for structure level-ups. Usage: `!set_milestones <structure_name> <votes_level_2> <votes_level_3> ...`",
-    end_adventure: "Starts structure voting for selected players. Usage: `!end_adventure @players`",
-    history: "Displays town history logs. Use `!history [filter]` to filter logs by `structures`, `votes`, or `milestones`.",
-    categories: "Lists all available structure categories.",
+// ✅ Updated command descriptions to separate usage on a new indented line
+const commandDescriptions: Record<string, { description: string; usage: string }> = {
+    add_structure: {
+        description: "Adds a new structure to the town.",
+        usage: "Usage: `!add_structure <name> [category]`"
+    },
+    structures: {
+        description: "Lists all structures and their levels. Optionally filter by category.",
+        usage: "Usage: `!structures [category]`"
+    },
+    check_votes: {
+        description: "Checks votes for a structure.",
+        usage: "Usage: `!check_votes <structure_name>`"
+    },
+    upgrade: {
+        description: "Upgrades a structure if enough votes exist.",
+        usage: "Usage: `!upgrade <structure_name>`"
+    },
+    set_milestones: {
+        description: "Sets milestone votes required for structure level-ups.",
+        usage: "Usage: `!set_milestones <structure_name> <votes_level_2> <votes_level_3> ...`"
+    },
+    end_adventure: {
+        description: "Starts structure voting for selected players.",
+        usage: "Usage: `!end_adventure @players`"
+    },
+    history: {
+        description: "Displays town history logs. Filter logs by type.",
+        usage: "Usage: `!history [structures | votes | milestones]`"
+    },
+    categories: {
+        description: "Lists all available structure categories.",
+        usage: "Usage: `!categories`"
+    },
 };
 
 async function sendGeneralHelp(message: Message) {
-    const commandList = Object.keys(commandDescriptions)
-        .map((cmd) => `• \`!${cmd}\` - ${commandDescriptions[cmd]}`)
+    const commandList = Object.entries(commandDescriptions)
+        .map(([cmd, info]) => `• \`!${cmd}\` - ${info.description}\n  ${info.usage}`)
         .join("\n");
 
     const embed = new EmbedBuilder()
@@ -42,16 +66,16 @@ async function sendGeneralHelp(message: Message) {
 }
 
 async function sendCommandHelp(message: Message, commandName: string) {
-    const description = commandDescriptions[commandName];
+    const commandInfo = commandDescriptions[commandName];
 
-    if (!description) {
+    if (!commandInfo) {
         await message.reply(`❌ Command \`${commandName}\` not found.`);
         return;
     }
 
     const embed = new EmbedBuilder()
         .setTitle(`📖 Help: \`!${commandName}\``)
-        .setDescription(description)
+        .setDescription(`${commandInfo.description}\n\n${commandInfo.usage}`)
         .setColor(0x3498db);
 
     await message.reply({ embeds: [embed] });
