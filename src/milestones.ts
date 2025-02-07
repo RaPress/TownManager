@@ -15,14 +15,18 @@ type StructureWithMilestones = {
 
 // ✅ Lists milestones for all structures or a specific one
 export async function listMilestones(message: Message, args: string[], db: Database) {
+    const guildId = message.guild?.id;
+    if (!guildId) return message.reply("❌ Unable to determine server.");
+
     if (args.length === 0) {
-        // ✅ General Listing: Show all structures and their milestones
+        // ✅ General Listing: Show all structures and their milestones for the guild
         db.all(
             `SELECT s.name, GROUP_CONCAT(m.votes_required, ', ') AS milestones
-FROM structures s
-LEFT JOIN milestones m ON s.id = m.structure_id
-GROUP BY s.id`,
-            [],
+             FROM structures s
+             LEFT JOIN milestones m ON s.id = m.structure_id
+             WHERE s.guild_id = ?
+             GROUP BY s.id`,
+            [guildId],
             (err, rows: StructureWithMilestones[]) => {
                 if (err || rows.length === 0) {
                     return message.reply("❌ No milestones found.");
@@ -34,7 +38,7 @@ GROUP BY s.id`,
 
                 message.reply(`📏 **Milestones for all structures:**\n${milestoneList}`);
 
-                logHistory(db, "Milestones Listed", `${message.author.tag} listed all milestones.`);
+                logHistory(db, "Milestones Listed", `${message.author.tag} listed all milestones.`, message.author.tag, guildId);
             }
         );
     } else {
@@ -43,9 +47,9 @@ GROUP BY s.id`,
         // ✅ Specific Listing: Show milestones for a given structure
         db.all(
             `SELECT level, votes_required FROM milestones 
-WHERE structure_id = (SELECT id FROM structures WHERE LOWER(name) = ?) 
-ORDER BY level`,
-            [structureName],
+             WHERE structure_id = (SELECT id FROM structures WHERE LOWER(name) = ? AND guild_id = ?) 
+             ORDER BY level`,
+            [structureName, guildId],
             (err, rows: Milestone[]) => {
                 if (err) {
                     return message.reply("❌ Database error.");
@@ -61,7 +65,7 @@ ORDER BY level`,
 
                 message.reply(`📏 **Milestones for '${structureName}':**\n${milestoneDetails}`);
 
-                logHistory(db, "Milestone Checked", `${message.author.tag} checked milestones for '${structureName}'.`);
+                logHistory(db, "Milestone Checked", `${message.author.tag} checked milestones for '${structureName}'.`, message.author.tag, guildId);
             }
         );
     }
@@ -71,7 +75,9 @@ ORDER BY level`,
 export async function setMilestones(message: Message, args: string[], db: Database) {
     const structureName = args[0]?.trim();
     const milestoneVotes = args.slice(1).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+    const guildId = message.guild?.id;
 
+    if (!guildId) return message.reply("❌ Unable to determine server.");
     if (!structureName || milestoneVotes.length === 0) {
         return message.reply(
             "❌ **Usage:** `!set_milestones <structure_name> <votes_level_2> <votes_level_3> ...`"
@@ -79,8 +85,8 @@ export async function setMilestones(message: Message, args: string[], db: Databa
     }
 
     db.get(
-        "SELECT id FROM structures WHERE LOWER(name) = ?",
-        [structureName.toLowerCase()],
+        "SELECT id FROM structures WHERE LOWER(name) = ? AND guild_id = ?",
+        [structureName.toLowerCase(), guildId],
         (err, row: { id: number } | undefined) => {
             if (err) {
                 console.error("❌ Database error:", err);
@@ -91,7 +97,7 @@ export async function setMilestones(message: Message, args: string[], db: Databa
                 return message.reply(`❌ Structure '**${structureName}**' does not exist.`);
             }
 
-            db.run("DELETE FROM milestones WHERE structure_id = ?", [row.id], (delErr) => {
+            db.run("DELETE FROM milestones WHERE structure_id = ? AND guild_id = ?", [row.id, guildId], (delErr) => {
                 if (delErr) {
                     console.error("❌ Error deleting old milestones:", delErr);
                     return message.reply("❌ Failed to reset previous milestones.");
@@ -100,8 +106,8 @@ export async function setMilestones(message: Message, args: string[], db: Databa
                 const insertStatements = milestoneVotes.map((votes, index) => {
                     return new Promise<void>((resolve, reject) => {
                         db.run(
-                            "INSERT INTO milestones (structure_id, level, votes_required) VALUES (?, ?, ?)",
-                            [row.id, index + 2, votes],
+                            "INSERT INTO milestones (structure_id, level, votes_required, guild_id) VALUES (?, ?, ?, ?)",
+                            [row.id, index + 2, votes, guildId],
                             (err) => {
                                 if (err) reject(err);
                                 else resolve();
@@ -120,7 +126,8 @@ export async function setMilestones(message: Message, args: string[], db: Databa
                             db,
                             "Milestones Set",
                             `${message.author.tag} set milestones for '${structureName}': ${milestoneVotes.join(", ")} votes per level.`,
-                            message.author.tag
+                            message.author.tag,
+                            guildId
                         );
                     })
                     .catch((insertErr) => {

@@ -21,15 +21,17 @@ export async function addStructure(
     db: Database,
 ) {
     const structureName = args[0]?.trim();
-    const category = args.slice(1).join(" ").trim() || "General"; // ✅ Default category if not provided
+    const category = args.slice(1).join(" ").trim() || "General";
+    const guildId = message.guild?.id;
 
+    if (!guildId) return message.reply("❌ Unable to determine server.");
     if (!structureName) {
         return message.reply("❌ Usage: `!add_structure <name> [category]`");
     }
 
     db.run(
-        "INSERT INTO structures (name, level, max_level, category) VALUES (?, 1, 10, ?)",
-        [structureName, category],
+        "INSERT INTO structures (name, level, max_level, category, guild_id) VALUES (?, 1, 10, ?, ?)",
+        [structureName, category, guildId],
         (err) => {
             if (err) {
                 return message.reply(
@@ -45,7 +47,8 @@ export async function addStructure(
                 db,
                 "Structure Added",
                 `${message.author.tag} added structure '${structureName}' in category '${category}'`,
-                message.author.tag
+                message.author.tag,
+                guildId
             );
         },
     );
@@ -54,12 +57,15 @@ export async function addStructure(
 // ✅ Lists structures, optionally filtering by category
 export async function listStructures(message: Message, args: string[], db: Database) {
     const categoryFilter = args.join(" ").trim();
+    const guildId = message.guild?.id;
 
-    let query = "SELECT name, level, category FROM structures";
-    const params: string[] = [];
+    if (!guildId) return message.reply("❌ Unable to determine server.");
+
+    let query = "SELECT name, level, category FROM structures WHERE guild_id = ?";
+    const params: string[] = [guildId];
 
     if (categoryFilter) {
-        query += " WHERE LOWER(category) = LOWER(?)";
+        query += " AND LOWER(category) = LOWER(?)";
         params.push(categoryFilter);
     }
 
@@ -80,7 +86,8 @@ export async function listStructures(message: Message, args: string[], db: Datab
             db,
             "Structures Listed",
             `${message.author.tag} listed structures in category '${categoryFilter || "All"}'.`,
-            message.author.tag
+            message.author.tag,
+            guildId
         );
     });
 }
@@ -91,13 +98,17 @@ export async function checkVotes(
     args: string[],
     db: Database,
 ) {
+    const guildId = message.guild?.id;
+    if (!guildId) return message.reply("❌ Unable to determine server.");
+
     if (args.length === 0) {
         db.all(
             `SELECT s.name, s.category, COALESCE(SUM(v.votes), 0) AS total_votes
-             FROM structures s
-             LEFT JOIN votes v ON s.id = v.structure_id
-             GROUP BY s.id`,
-            [],
+            FROM structures s
+            LEFT JOIN votes v ON s.id = v.structure_id
+            WHERE s.guild_id = ?
+            GROUP BY s.id`,
+            [guildId],
             (err, rows: { name: string; category: string; total_votes: number }[]) => {
                 if (err || rows.length === 0) {
                     return message.reply("❌ No structures exist.");
@@ -115,7 +126,8 @@ export async function checkVotes(
                     db,
                     "Votes Checked",
                     `${message.author.tag} checked votes for all structures.`,
-                    message.author.tag
+                    message.author.tag,
+                    guildId
                 );
             },
         );
@@ -129,8 +141,8 @@ export async function checkVotes(
         console.log(`🔍 Checking votes for structure: ${structureName}`);
 
         db.get(
-            "SELECT id, last_reset_adventure, name, category FROM structures WHERE LOWER(name) = ?",
-            [structureName],
+            "SELECT id, last_reset_adventure, name, category FROM structures WHERE LOWER(name) = ? AND guild_id = ?",
+            [structureName, guildId],
             (
                 err,
                 structure: {
@@ -161,8 +173,8 @@ export async function checkVotes(
                 );
 
                 db.get(
-                    "SELECT COUNT(*) AS total FROM votes WHERE structure_id = ? AND adventure_id > ?",
-                    [structure.id, structure.last_reset_adventure || 0],
+                    "SELECT COUNT(*) AS total FROM votes WHERE structure_id = ? AND adventure_id > ? AND guild_id = ?",
+                    [structure.id, structure.last_reset_adventure || 0, guildId],
                     (err, result: VoteResult | undefined) => {
                         if (err) {
                             console.error("❌ Database error:", err);
@@ -184,7 +196,8 @@ export async function checkVotes(
                             db,
                             "Votes Checked",
                             `${message.author.tag} checked votes for structure '${structure.name}': ${totalVotes} votes.`,
-                            message.author.tag
+                            message.author.tag,
+                            guildId
                         );
                     },
                 );
@@ -192,5 +205,3 @@ export async function checkVotes(
         );
     }
 }
-
-

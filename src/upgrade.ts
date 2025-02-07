@@ -14,12 +14,13 @@ export async function requestUpgradeConfirmation(
     message: Message,
     args: string[],
     db: Database,
+    guildId: string // ✅ Added `guild_id`
 ) {
     const structureName = args.join(" ").trim().toLowerCase();
 
     db.get(
-        `SELECT id, name, level, max_level FROM structures WHERE LOWER(name) = ?`,
-        [structureName],
+        `SELECT id, name, level, max_level FROM structures WHERE LOWER(name) = ? AND guild_id = ?`,
+        [structureName, guildId], // ✅ Filter by `guild_id`
         (
             err: Error | null,
             structure: {
@@ -43,8 +44,8 @@ export async function requestUpgradeConfirmation(
 
             // ✅ Check if it has enough votes
             db.get(
-                `SELECT votes_required FROM milestones WHERE structure_id = ? AND level = ?`,
-                [structure.id, structure.level + 1],
+                `SELECT votes_required FROM milestones WHERE structure_id = ? AND level = ? AND guild_id = ?`,
+                [structure.id, structure.level + 1, guildId], // ✅ Filter by `guild_id`
                 (
                     err: Error | null,
                     milestone: { votes_required: number },
@@ -56,8 +57,8 @@ export async function requestUpgradeConfirmation(
                     }
 
                     db.get(
-                        `SELECT SUM(votes) AS total FROM votes WHERE structure_id = ?`,
-                        [structure.id],
+                        `SELECT SUM(votes) AS total FROM votes WHERE structure_id = ? AND guild_id = ?`,
+                        [structure.id, guildId], // ✅ Filter by `guild_id`
                         (err: Error | null, result: { total: number }) => {
                             if (err) {
                                 return message.reply(
@@ -83,12 +84,12 @@ export async function requestUpgradeConfirmation(
                                 .setColor(0xf1c40f);
 
                             const confirmButton = new ButtonBuilder()
-                                .setCustomId(`confirm_upgrade_${structure.id}`)
+                                .setCustomId(`confirm_upgrade_${structure.id}_${guildId}`)
                                 .setLabel("✅ Confirm Upgrade")
                                 .setStyle(ButtonStyle.Success);
 
                             const cancelButton = new ButtonBuilder()
-                                .setCustomId(`cancel_upgrade_${structure.id}`)
+                                .setCustomId(`cancel_upgrade_${structure.id}_${guildId}`)
                                 .setLabel("❌ Cancel")
                                 .setStyle(ButtonStyle.Danger);
 
@@ -129,7 +130,7 @@ export async function handleUpgradeInteraction(
     );
 
     const match = interaction.customId.match(
-        /^(confirm_upgrade|cancel_upgrade)_(\d+)$/,
+        /^(confirm_upgrade|cancel_upgrade)_(\d+)_(\d+)$/ // ✅ Extract `guild_id` as well
     );
     if (!match) {
         console.error("❌ Invalid button ID format:", interaction.customId);
@@ -141,8 +142,9 @@ export async function handleUpgradeInteraction(
 
     const action = match[1]; // "confirm_upgrade" or "cancel_upgrade"
     const structureId = match[2]; // The actual structure ID
+    const guildId = match[3]; // ✅ Extract `guild_id`
 
-    console.log(`🔍 Parsed action: ${action}, Structure ID: ${structureId}`);
+    console.log(`🔍 Parsed action: ${action}, Structure ID: ${structureId}, Guild ID: ${guildId}`);
 
     if (action === "cancel_upgrade") {
         console.log("⚠ Upgrade canceled.");
@@ -169,8 +171,8 @@ export async function handleUpgradeInteraction(
         }
 
         db.get(
-            `SELECT id, name, level, max_level FROM structures WHERE id = ?`,
-            [structureId],
+            `SELECT id, name, level, max_level FROM structures WHERE id = ? AND guild_id = ?`,
+            [structureId, guildId], // ✅ Filter by `guild_id`
             (
                 err: Error | null,
                 structure: {
@@ -188,10 +190,6 @@ export async function handleUpgradeInteraction(
                     });
                 }
 
-                console.log(
-                    `✅ Structure found: ${structure.name} (Level ${structure.level})`,
-                );
-
                 if (structure.level >= structure.max_level) {
                     return interaction.followUp({
                         content: `⚠ **${structure.name}** is already at max level!`,
@@ -199,48 +197,31 @@ export async function handleUpgradeInteraction(
                     });
                 }
 
-                console.log(
-                    `🔍 Checking required votes for next level: ${structure.level + 1}`,
-                );
-
                 db.get(
-                    `SELECT votes_required FROM milestones WHERE structure_id = ? AND level = ?`,
-                    [structureId, structure.level + 1],
+                    `SELECT votes_required FROM milestones WHERE structure_id = ? AND level = ? AND guild_id = ?`,
+                    [structureId, structure.level + 1, guildId], // ✅ Filter by `guild_id`
                     (
                         err: Error | null,
                         milestone: { votes_required: number },
                     ) => {
                         if (err || !milestone) {
-                            console.error("❌ Milestone not found:", err);
                             return interaction.followUp({
                                 content: "❌ Milestone not set for next level.",
                                 ephemeral: true,
                             });
                         }
 
-                        console.log(
-                            `✅ Milestone found: ${milestone.votes_required} votes needed.`,
-                        );
-
                         db.run(
-                            `UPDATE structures SET level = ?, last_reset_adventure = (SELECT MAX(id) FROM adventure) WHERE id = ?`,
-                            [structure.level + 1, structureId],
+                            `UPDATE structures SET level = ?, last_reset_adventure = (SELECT MAX(id) FROM adventure WHERE guild_id = ?) WHERE id = ? AND guild_id = ?`,
+                            [structure.level + 1, guildId, structureId, guildId], // ✅ Update within the same `guild_id`
                             (err: Error | null) => {
                                 if (err) {
-                                    console.error(
-                                        "❌ Error upgrading structure:",
-                                        err,
-                                    );
                                     return interaction.followUp({
                                         content:
                                             "❌ Error upgrading structure.",
                                         ephemeral: true,
                                     });
                                 }
-
-                                console.log(
-                                    `🎉 SUCCESS: ${structure.name} upgraded to Level ${structure.level + 1}`,
-                                );
 
                                 logHistory(
                                     db,
@@ -250,8 +231,8 @@ export async function handleUpgradeInteraction(
                                 );
 
                                 db.run(
-                                    `DELETE FROM votes WHERE structure_id = ?`,
-                                    [structureId],
+                                    `DELETE FROM votes WHERE structure_id = ? AND guild_id = ?`,
+                                    [structureId, guildId], // ✅ Delete votes only from this server
                                 );
 
                                 interaction.followUp({

@@ -15,75 +15,89 @@ type Structure = {
     name: string;
 };
 
-// ✅ Starts a new voting session
+// ✅ Starts a new voting session, now per-server
 export async function startVoting(
     message: Message,
     players: string[],
     db: Database,
+    guildId: string // ✅ Added `guild_id`
 ) {
-    db.run("INSERT INTO adventure DEFAULT VALUES", function (err) {
-        if (err) {
-            return message.reply("❌ Database error.");
-        }
+    db.run(
+        "INSERT INTO adventure (guild_id) VALUES (?)",
+        [guildId], // ✅ Store `guild_id`
+        function (err) {
+            if (err) {
+                return message.reply("❌ Database error.");
+            }
 
-        const adventureId = this.lastID; // ✅ Get the newly created adventure ID
+            const adventureId = this.lastID; // ✅ Get the newly created adventure ID
 
-        db.all(
-            "SELECT id, name FROM structures",
-            [],
-            (err, structures: Structure[]) => {
-                if (err || structures.length === 0) {
-                    return message.reply("❌ No structures exist.");
-                }
+            db.all(
+                "SELECT id, name FROM structures WHERE guild_id = ?",
+                [guildId], // ✅ Filter by `guild_id`
+                (err, structures: Structure[]) => {
+                    if (err || structures.length === 0) {
+                        return message.reply("❌ No structures exist.");
+                    }
 
-                const structureList = structures
-                    .map((s: Structure, i: number) => `${i + 1}. ${s.name}`)
-                    .join("\n");
+                    const structureList = structures
+                        .map((s: Structure, i: number) => `${i + 1}. ${s.name}`)
+                        .join("\n");
 
-                players.forEach(async (playerId) => {
-                    const player = await message.client.users.fetch(playerId);
-                    if (!player) return;
+                    players.forEach(async (playerId) => {
+                        const player = await message.client.users.fetch(playerId);
+                        if (!player) return;
 
-                    const embed = new EmbedBuilder()
-                        .setTitle("🏛 Structure Voting")
-                        .setDescription(
-                            `Click a number to vote:\n\n${structureList}`,
-                        )
-                        .setColor(0x3498db);
-
-                    const buttons = structures.map((s: Structure, i: number) =>
-                        new ButtonBuilder()
-                            .setCustomId(
-                                `vote_${adventureId}_${playerId}_${s.id}`,
+                        const embed = new EmbedBuilder()
+                            .setTitle("🏛 Structure Voting")
+                            .setDescription(
+                                `Click a number to vote:\n\n${structureList}`,
                             )
-                            .setLabel(`${i + 1}`)
-                            .setStyle(ButtonStyle.Primary),
-                    );
+                            .setColor(0x3498db);
 
-                    const actionRow =
-                        new ActionRowBuilder<ButtonBuilder>().addComponents(
-                            buttons,
+                        const buttons = structures.map((s: Structure, i: number) =>
+                            new ButtonBuilder()
+                                .setCustomId(
+                                    `vote_${adventureId}_${playerId}_${s.id}`,
+                                )
+                                .setLabel(`${i + 1}`)
+                                .setStyle(ButtonStyle.Primary),
                         );
 
-                    await player.send({
-                        embeds: [embed],
-                        components: [actionRow],
-                    });
-                });
+                        const actionRow =
+                            new ActionRowBuilder<ButtonBuilder>().addComponents(
+                                buttons,
+                            );
 
-                message.reply("📨 Sent voting messages!");
-                logHistory(db, "Voting Started", `Voting started for adventure ${adventureId} with players: ${players.join(", ")}`, message.author.tag);
-            },
-        );
-    });
+                        await player.send({
+                            embeds: [embed],
+                            components: [actionRow],
+                        });
+                    });
+
+                    message.reply("📨 Sent voting messages!");
+                    logHistory(
+                        db,
+                        "Voting Started",
+                        `Voting started for adventure ${adventureId} with players: ${players.join(", ")}`,
+                        message.author.tag
+                    );
+                },
+            );
+        }
+    );
 }
 
 // ✅ Handles votes when players click a button
-export async function handleVote(interaction: Interaction, db: Database) {
+export async function handleVote(
+    interaction: Interaction,
+    db: Database,
+    guildId: string // ✅ Added `guild_id`
+) {
     if (!interaction.isButton()) return;
 
     console.log(
-        `🗳️ Vote button clicked: ${interaction.customId} by ${interaction.user.tag}`,
+        `🗳️ Vote button clicked: ${interaction.customId} by ${interaction.user.tag} in ${interaction.guild?.name}`,
     );
 
     // ✅ Immediately acknowledge the interaction
@@ -117,8 +131,8 @@ export async function handleVote(interaction: Interaction, db: Database) {
 
     // ✅ Check if user has already voted in this adventure
     db.get(
-        "SELECT structure_id FROM votes WHERE user_id = ? AND adventure_id = ?",
-        [userId, adventureId],
+        "SELECT structure_id FROM votes WHERE user_id = ? AND adventure_id = ? AND guild_id = ?",
+        [userId, adventureId, guildId], // ✅ Filter by `guild_id`
         (err, row) => {
             if (err) {
                 console.error("❌ Database error:", err);
@@ -133,8 +147,8 @@ export async function handleVote(interaction: Interaction, db: Database) {
                     `🔄 Updating vote for ${interaction.user.tag}: ${structureId}`,
                 );
                 db.run(
-                    "UPDATE votes SET structure_id = ? WHERE user_id = ? AND adventure_id = ?",
-                    [structureId, userId, adventureId],
+                    "UPDATE votes SET structure_id = ? WHERE user_id = ? AND adventure_id = ? AND guild_id = ?",
+                    [structureId, userId, adventureId, guildId], // ✅ Filter by `guild_id`
                     (err) => {
                         if (err) {
                             console.error("❌ Error updating vote:", err);
@@ -149,8 +163,8 @@ export async function handleVote(interaction: Interaction, db: Database) {
                         );
 
                         db.get<{ name: string }>(
-                            "SELECT name FROM structures WHERE id = ?",
-                            [structureId],
+                            "SELECT name FROM structures WHERE id = ? AND guild_id = ?",
+                            [structureId, guildId], // ✅ Filter by `guild_id`
                             (err, row) => {
                                 if (err || !row) {
                                     console.error(
@@ -185,8 +199,8 @@ export async function handleVote(interaction: Interaction, db: Database) {
                 );
 
                 db.run(
-                    "INSERT INTO votes (user_id, structure_id, adventure_id) VALUES (?, ?, ?)",
-                    [userId, structureId, adventureId],
+                    "INSERT INTO votes (user_id, structure_id, adventure_id, guild_id) VALUES (?, ?, ?, ?)",
+                    [userId, structureId, adventureId, guildId], // ✅ Include `guild_id`
                     (err) => {
                         if (err) {
                             console.error("❌ Error registering vote:", err);
@@ -201,8 +215,8 @@ export async function handleVote(interaction: Interaction, db: Database) {
                         );
 
                         db.get<{ name: string }>(
-                            "SELECT name FROM structures WHERE id = ?",
-                            [structureId],
+                            "SELECT name FROM structures WHERE id = ? AND guild_id = ?",
+                            [structureId, guildId], // ✅ Filter by `guild_id`
                             (err, row) => {
                                 if (err || !row) {
                                     console.error(

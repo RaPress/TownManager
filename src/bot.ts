@@ -36,9 +36,16 @@ bot.once("ready", () => {
 
 // ✅ Event: Listen for ALL interactions (buttons, slash commands, etc.)
 bot.on("interactionCreate", async (interaction: Interaction) => {
+    if (!interaction.guild) {
+        console.warn("⚠ Interaction received outside of a server.");
+        return;
+    }
+
+    const guildId = interaction.guild.id;
+
     if (interaction.isButton()) {
         console.log(
-            `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
+            `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag} (Server: ${guildId})`,
         );
 
         if (
@@ -50,7 +57,7 @@ bot.on("interactionCreate", async (interaction: Interaction) => {
             );
             await handleUpgradeInteraction(
                 interaction as ButtonInteraction,
-                db,
+                db
             );
         } else {
             console.warn("⚠ Button clicked but no handler exists for it.");
