@@ -72,11 +72,7 @@ export async function startVoting(
                 });
 
                 message.reply("📨 Sent voting messages!");
-                logHistory(
-                    db,
-                    "Voting Started",
-                    `Voting started for adventure ${adventureId} by ${message.author.tag} with players: ${players.join(", ")}`,
-                );
+                logHistory(db, "Voting Started", `Voting started for adventure ${adventureId} with players: ${players.join(", ")}`, message.author.tag);
             },
         );
     });
@@ -172,6 +168,7 @@ export async function handleVote(interaction: Interaction, db: Database) {
                                     db,
                                     "Vote Updated",
                                     `${interaction.user.tag} changed vote to ${row.name} in adventure ${adventureId}`,
+                                    interaction.user.tag
                                 );
 
                                 interaction.followUp({
@@ -223,6 +220,7 @@ export async function handleVote(interaction: Interaction, db: Database) {
                                     db,
                                     "Vote Registered",
                                     `${interaction.user.tag} voted for ${row.name} in adventure ${adventureId}`,
+                                    interaction.user.tag
                                 );
 
                                 interaction.followUp({
