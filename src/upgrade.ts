@@ -107,6 +107,7 @@ export async function requestUpgradeConfirmation(
                                 db,
                                 "Upgrade Requested",
                                 `${message.author.tag} requested upgrade for ${structure.name} (Lv. ${structure.level} → ${structure.level + 1})`,
+                                message.author.tag
                             );
                         },
                     );
@@ -149,6 +150,7 @@ export async function handleUpgradeInteraction(
             db,
             "Upgrade Canceled",
             `${interaction.user.tag} canceled upgrade for Structure ID: ${structureId}`,
+            interaction.user.tag
         );
         return interaction.reply({
             content: "❌ Upgrade canceled.",
@@ -220,74 +222,42 @@ export async function handleUpgradeInteraction(
                             `✅ Milestone found: ${milestone.votes_required} votes needed.`,
                         );
 
-                        db.get(
-                            `SELECT SUM(votes) AS total FROM votes WHERE structure_id = ?`,
-                            [structureId],
-                            (err: Error | null, result: { total: number }) => {
+                        db.run(
+                            `UPDATE structures SET level = ?, last_reset_adventure = (SELECT MAX(id) FROM adventure) WHERE id = ?`,
+                            [structure.level + 1, structureId],
+                            (err: Error | null) => {
                                 if (err) {
                                     console.error(
-                                        "❌ Error checking votes:",
+                                        "❌ Error upgrading structure:",
                                         err,
                                     );
                                     return interaction.followUp({
-                                        content: "❌ Database error.",
+                                        content:
+                                            "❌ Error upgrading structure.",
                                         ephemeral: true,
                                     });
                                 }
 
-                                const totalVotes = result?.total || 0;
                                 console.log(
-                                    `📊 Total votes available: ${totalVotes}`,
+                                    `🎉 SUCCESS: ${structure.name} upgraded to Level ${structure.level + 1}`,
                                 );
 
-                                if (totalVotes < milestone.votes_required) {
-                                    return interaction.followUp({
-                                        content: `⚠ **${structure.name}** does not have enough votes to upgrade! **${milestone.votes_required - totalVotes}** more needed.`,
-                                        ephemeral: true,
-                                    });
-                                }
-
-                                console.log(
-                                    `✅ Upgrading ${structure.name} to Level ${structure.level + 1}...`,
+                                logHistory(
+                                    db,
+                                    "Structure Upgraded",
+                                    `${interaction.user.tag} upgraded ${structure.name} to Level ${structure.level + 1}`,
+                                    interaction.user.tag
                                 );
 
                                 db.run(
-                                    `UPDATE structures SET level = ?, last_reset_adventure = (SELECT MAX(id) FROM adventure) WHERE id = ?`,
-                                    [structure.level + 1, structureId],
-                                    (err: Error | null) => {
-                                        if (err) {
-                                            console.error(
-                                                "❌ Error upgrading structure:",
-                                                err,
-                                            );
-                                            return interaction.followUp({
-                                                content:
-                                                    "❌ Error upgrading structure.",
-                                                ephemeral: true,
-                                            });
-                                        }
-
-                                        console.log(
-                                            `🎉 SUCCESS: ${structure.name} upgraded to Level ${structure.level + 1}`,
-                                        );
-
-                                        logHistory(
-                                            db,
-                                            "Structure Upgraded",
-                                            `${interaction.user.tag} upgraded ${structure.name} to Level ${structure.level + 1}`,
-                                        );
-
-                                        db.run(
-                                            `DELETE FROM votes WHERE structure_id = ?`,
-                                            [structureId],
-                                        );
-
-                                        interaction.followUp({
-                                            content: `🏗 **${structure.name} has been upgraded to Level ${structure.level + 1}!** 🎉`,
-                                            ephemeral: false,
-                                        });
-                                    },
+                                    `DELETE FROM votes WHERE structure_id = ?`,
+                                    [structureId],
                                 );
+
+                                interaction.followUp({
+                                    content: `🏗 **${structure.name} has been upgraded to Level ${structure.level + 1}!** 🎉`,
+                                    ephemeral: false,
+                                });
                             },
                         );
                     },
