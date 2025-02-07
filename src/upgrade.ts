@@ -21,7 +21,7 @@ export async function requestUpgradeConfirmation(
         `SELECT id, name, level, max_level FROM structures WHERE LOWER(name) = ?`,
         [structureName],
         (
-            err,
+            err: Error | null,
             structure: {
                 id: number;
                 name: string;
@@ -45,7 +45,10 @@ export async function requestUpgradeConfirmation(
             db.get(
                 `SELECT votes_required FROM milestones WHERE structure_id = ? AND level = ?`,
                 [structure.id, structure.level + 1],
-                (err, milestone: { votes_required: number }) => {
+                (
+                    err: Error | null,
+                    milestone: { votes_required: number },
+                ) => {
                     if (err || !milestone) {
                         return message.reply(
                             `❌ Milestone for **${structure.name}** at Level ${structure.level + 1} is not set.`,
@@ -55,7 +58,7 @@ export async function requestUpgradeConfirmation(
                     db.get(
                         `SELECT SUM(votes) AS total FROM votes WHERE structure_id = ?`,
                         [structure.id],
-                        (err, result: { total: number }) => {
+                        (err: Error | null, result: { total: number }) => {
                             if (err) {
                                 return message.reply(
                                     "❌ Database error while checking votes.",
