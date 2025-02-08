@@ -74,11 +74,15 @@ export function registerCommands(bot: Client, db: Database) {
                 interaction.customId.startsWith("confirm_upgrade_") ||
                 interaction.customId.startsWith("cancel_upgrade_")
             ) {
+                const customIdParts = interaction.customId.split("_");
+                const extractedGuildId = customIdParts.length > 3 ? customIdParts[3] : null;
+
                 await handleUpgradeInteraction(
                     interaction as ButtonInteraction,
                     db,
-                    interaction.guild.id
+                    extractedGuildId || "dm"
                 );
+
             }
         }
     });

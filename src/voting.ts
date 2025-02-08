@@ -109,9 +109,10 @@ export async function handleVote(
         return interaction.followUp({ content: "❌ Error: Missing server information.", ephemeral: true });
     }
 
-    const [_, adventureId, userId, structureId, guildId] = idParts; // ✅ Ensure we always extract `guildId`
+    const [_, adventureId, userId, structureId, guildId] = idParts;
 
-
+    // ✅ Handle votes that originated from DMs
+    const finalGuildId = guildId === "dm" ? null : guildId;
 
     if (!guildId) {
         console.error("❌ Guild ID missing from vote button!");
