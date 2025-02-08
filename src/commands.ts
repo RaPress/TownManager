@@ -20,90 +20,97 @@ import { setMilestones, listMilestones } from "./milestones";
 
 export function registerCommands(bot: Client, db: Database) {
     bot.on("messageCreate", async (message: Message) => {
-        if (message.author.bot || !message.guild) return; // ✅ Ensure command comes from a server
+        if (message.author.bot || !message.guild) return;
 
         const args = message.content.split(" ");
         const command = args.shift()?.toLowerCase();
-        const guildId = message.guild.id; // ✅ Get server ID
+        const guildId = message.guild.id;
 
         console.log(
             `📢 Command received: ${command} from ${message.author.tag} in ${message.guild.name}`,
         );
 
-        switch (command) {
-            case "!add_structure":
-                await addStructure(message, args, db, guildId);
-                break;
-            case "!structures":
-                await listStructures(message, args, db);
-                break;
-            case "!check_votes":
-                await checkVotes(message, args, db, guildId);
-                break;
-            case "!upgrade":
-                if (args.length > 0) {
-                    await requestUpgradeConfirmation(message, args, db, guildId);
-                } else {
-                    message.reply("❌ Please provide a structure name.");
-                }
-                break;
-            case "!set_milestones":
-                await setMilestones(message, args, db);
-                break;
-            case "!milestones":
-                await listMilestones(message, args, db);
-                break;
-            case "!end_adventure":
-                await endAdventure(message, args, db, guildId);
-                break;
-            case "!history":
-                await fetchHistory(message, db);
-                break;
-        }
+        await handleCommand(command, message, args, db, guildId);
     });
 
     bot.on("interactionCreate", async (interaction: Interaction) => {
-        if (interaction.isButton()) {
-            console.log(
-                `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
-            );
+        if (!interaction.isButton()) return;
 
-            if (interaction.customId.startsWith("vote_")) {
-                await handleVote(interaction as ButtonInteraction, db);
-            } else if (
-                interaction.customId.startsWith("confirm_upgrade_") ||
-                interaction.customId.startsWith("cancel_upgrade_")
-            ) {
-                const customIdParts = interaction.customId.split("_");
-                const extractedGuildId = customIdParts.length > 3 ? customIdParts[3] : null;
+        console.log(
+            `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
+        );
 
-                await handleUpgradeInteraction(
-                    interaction as ButtonInteraction,
-                    db,
-                    extractedGuildId || "dm"
-                );
-
-            }
-        }
+        await handleInteraction(interaction as ButtonInteraction, db);
     });
+}
+
+// ✅ Extracted function to handle commands
+async function handleCommand(
+    command: string | undefined,
+    message: Message,
+    args: string[],
+    db: Database,
+    guildId: string
+) {
+    const commandHandlers: Record<string, (msg: Message, args: string[], db: Database, guildId: string) => Promise<void>> = {
+        "!add_structure": addStructure,
+        "!structures": listStructures,
+        "!check_votes": checkVotes,
+        "!set_milestones": setMilestones,
+        "!milestones": listMilestones,
+        "!end_adventure": endAdventure
+    };
+
+    if (command === "!upgrade") {
+        if (args.length > 0) {
+            await requestUpgradeConfirmation(message, args, db, guildId);
+        } else {
+            message.reply("❌ Please provide a structure name.");
+        }
+    } else if (command === "!history") {
+        await fetchHistory(message, db);
+    } else {
+        const handler = commandHandlers[command];
+        if (handler) {
+            await handler(message, args, db, guildId);
+        }
+    }
+}
+
+// ✅ Extracted function to handle interactions
+async function handleInteraction(interaction: ButtonInteraction, db: Database) {
+    if (interaction.customId.startsWith("vote_")) {
+        await handleVote(interaction, db);
+    } else if (
+        interaction.customId.startsWith("confirm_upgrade_") ||
+        interaction.customId.startsWith("cancel_upgrade_")
+    ) {
+        const customIdParts = interaction.customId.split("_");
+        const extractedGuildId = customIdParts.length > 3 ? customIdParts[3] : null;
+
+        await handleUpgradeInteraction(
+            interaction,
+            db,
+            extractedGuildId || "dm"
+        );
+    }
+}
+
+// ✅ Extracted function to check GM role
+function isUserGM(message: Message): boolean {
+    const gmRole = message.guild?.roles.cache.find((r) => r.name === "GM");
+    return gmRole ? message.member?.roles.cache.has(gmRole.id) ?? false : false;
 }
 
 // ✅ GM-Only Command: Start Voting after Adventure
 async function endAdventure(message: Message, args: string[], db: Database, guildId: string) {
-    const gmRole = message.guild?.roles.cache.find((r) => r.name === "GM");
-
-    if (!gmRole || !message.member?.roles.cache.has(gmRole.id)) {
-        return message.reply(
-            "❌ You do not have permission to use this command.",
-        );
+    if (!isUserGM(message)) {
+        return message.reply("❌ You do not have permission to use this command.");
     }
 
     const mentionedPlayers = message.mentions.users.map((user) => user.id);
-
     if (mentionedPlayers.length === 0) {
-        return message.reply(
-            "❌ You must mention players who will participate in the vote.",
-        );
+        return message.reply("❌ You must mention players who will participate in the vote.");
     }
 
     await startVoting(message, mentionedPlayers, db, guildId);
