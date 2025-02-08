@@ -24,6 +24,8 @@ export function registerCommands(bot: Client, db: Database) {
 
         const args = message.content.split(" ");
         const command = args.shift()?.toLowerCase();
+        if (!command) return; // ✅ Ensure command is not undefined
+
         const guildId = message.guild.id;
 
         console.log(
@@ -46,18 +48,21 @@ export function registerCommands(bot: Client, db: Database) {
 
 // ✅ Extracted function to handle commands
 async function handleCommand(
-    command: string | undefined,
+    command: string,
     message: Message,
     args: string[],
     db: Database,
     guildId: string
 ) {
-    const commandHandlers: Record<string, (msg: Message, args: string[], db: Database, guildId: string) => Promise<void>> = {
+    const commandHandlers: Record<
+        string,
+        (msg: Message, args: string[], db: Database, guildId: string) => Promise<void>
+    > = {
         "!add_structure": addStructure,
-        "!structures": listStructures,
+        "!structures": async (msg, args, db, guildId) => { await listStructures(msg, args, db); },
         "!check_votes": checkVotes,
-        "!set_milestones": setMilestones,
-        "!milestones": listMilestones,
+        "!set_milestones": async (msg, args, db, guildId) => { await setMilestones(msg, args, db); },
+        "!milestones": async (msg, args, db, guildId) => { await listMilestones(msg, args, db); },
         "!end_adventure": endAdventure
     };
 
