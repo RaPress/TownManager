@@ -57,9 +57,7 @@ export async function startVoting(
 
                         const buttons = structures.map((s: Structure, i: number) =>
                             new ButtonBuilder()
-                                .setCustomId(
-                                    `vote_${adventureId}_${playerId}_${s.id}`,
-                                )
+                                .setCustomId(`vote_${adventureId}_${playerId}_${s.id}_${guildId}`)
                                 .setLabel(`${i + 1}`)
                                 .setStyle(ButtonStyle.Primary),
                         );
@@ -92,8 +90,7 @@ export async function startVoting(
 // ✅ Handles votes when players click a button
 export async function handleVote(
     interaction: Interaction,
-    db: Database,
-    guildId: string // ✅ Added `guild_id`
+    db: Database
 ) {
     if (!interaction.isButton()) return;
 
@@ -105,8 +102,12 @@ export async function handleVote(
     await interaction.deferReply({ ephemeral: true });
 
     // ✅ Extract values from button ID
-    const [_, adventureId, userId, structureId] =
-        interaction.customId.split("_");
+    const [_, adventureId, userId, structureId, guildId] = interaction.customId.split("_");
+
+    if (!guildId) {
+        console.error("❌ Guild ID missing from vote button!");
+        return interaction.followUp({ content: "❌ Error: Missing server information.", ephemeral: true });
+    }
 
     console.log(
         `Extracted IDs -> Adventure: ${adventureId}, User: ${userId}, Structure: ${structureId}`,
@@ -133,7 +134,7 @@ export async function handleVote(
     // ✅ Check if user has already voted in this adventure
     db.get(
         "SELECT structure_id FROM votes WHERE user_id = ? AND adventure_id = ? AND guild_id = ?",
-        [userId, adventureId, guildId], // ✅ Filter by `guild_id`
+        [userId, adventureId, guildId],
         (err, row) => {
             if (err) {
                 console.error("❌ Database error:", err);
