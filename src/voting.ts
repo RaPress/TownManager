@@ -176,7 +176,7 @@ export async function handleVote(
 
                         db.get<{ name: string }>(
                             "SELECT name FROM structures WHERE id = ? AND guild_id = ?",
-                            [structureId, guildId], // ✅ Filter by `guild_id`
+                            [structureId, guildId],
                             (err, row) => {
                                 if (err || !row) {
                                     console.error(
@@ -213,7 +213,7 @@ export async function handleVote(
 
                 db.run(
                     "INSERT INTO votes (user_id, structure_id, adventure_id, guild_id) VALUES (?, ?, ?, ?)",
-                    [userId, structureId, adventureId, guildId], // ✅ Include `guild_id`
+                    [userId, structureId, adventureId, guildId],
                     (err) => {
                         if (err) {
                             console.error("❌ Error registering vote:", err);
@@ -229,7 +229,7 @@ export async function handleVote(
 
                         db.get<{ name: string }>(
                             "SELECT name FROM structures WHERE id = ? AND guild_id = ?",
-                            [structureId, guildId], // ✅ Filter by `guild_id`
+                            [structureId, guildId],
                             (err, row) => {
                                 if (err || !row) {
                                     console.error(
