@@ -24,17 +24,17 @@ export async function startVoting(
 ) {
     db.run(
         "INSERT INTO adventure (guild_id) VALUES (?)",
-        [guildId], // ✅ Store `guild_id`
+        [guildId],
         function (err) {
             if (err) {
                 return message.reply("❌ Database error.");
             }
 
-            const adventureId = this.lastID; // ✅ Get the newly created adventure ID
+            const adventureId = this.lastID;
 
             db.all(
                 "SELECT id, name FROM structures WHERE guild_id = ?",
-                [guildId], // ✅ Filter by `guild_id`
+                [guildId],
                 (err, structures: Structure[]) => {
                     if (err || structures.length === 0) {
                         return message.reply("❌ No structures exist.");
@@ -102,7 +102,16 @@ export async function handleVote(
     await interaction.deferReply({ ephemeral: true });
 
     // ✅ Extract values from button ID
-    const [_, adventureId, userId, structureId, guildId] = interaction.customId.split("_");
+    const idParts = interaction.customId.split("_");
+
+    if (idParts.length < 5) {
+        console.error("❌ Missing guild ID in vote button!");
+        return interaction.followUp({ content: "❌ Error: Missing server information.", ephemeral: true });
+    }
+
+    const [_, adventureId, userId, structureId, guildId] = idParts; // ✅ Ensure we always extract `guildId`
+
+
 
     if (!guildId) {
         console.error("❌ Guild ID missing from vote button!");

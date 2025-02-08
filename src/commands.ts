@@ -63,9 +63,9 @@ export function registerCommands(bot: Client, db: Database) {
     });
 
     bot.on("interactionCreate", async (interaction: Interaction) => {
-        if (interaction.isButton() && interaction.guild) {
+        if (interaction.isButton()) {
             console.log(
-                `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag} in ${interaction.guild.name}`,
+                `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
             );
 
             const guildId = interaction.guild.id; // ✅ Ensure button interactions are per-server
