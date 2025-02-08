@@ -68,8 +68,6 @@ export function registerCommands(bot: Client, db: Database) {
                 `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
             );
 
-            const guildId = interaction.guild.id; // ✅ Ensure button interactions are per-server
-
             if (interaction.customId.startsWith("vote_")) {
                 await handleVote(interaction as ButtonInteraction, db);
             } else if (
@@ -79,7 +77,7 @@ export function registerCommands(bot: Client, db: Database) {
                 await handleUpgradeInteraction(
                     interaction as ButtonInteraction,
                     db,
-                    guildId
+                    interaction.guild.id
                 );
             }
         }
