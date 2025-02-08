@@ -1,6 +1,14 @@
 import { Database } from "sqlite3";
+import path from "path";
 
-export const db = new Database("town_manager.db");
+const dbPath = path.resolve(__dirname, "../town_manager.db"); // ✅ Ensure the file is created in the right directory
+export const db = new Database(dbPath, (err) => {
+    if (err) {
+        console.error("❌ Error opening database:", err);
+    } else {
+        console.log("✅ Database connected:", dbPath);
+    }
+});
 
 db.serialize(() => {
     // ✅ Milestones Table

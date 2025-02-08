@@ -71,7 +71,7 @@ export function registerCommands(bot: Client, db: Database) {
             const guildId = interaction.guild.id; // ✅ Ensure button interactions are per-server
 
             if (interaction.customId.startsWith("vote_")) {
-                await handleVote(interaction as ButtonInteraction, db, guildId);
+                await handleVote(interaction as ButtonInteraction, db);
             } else if (
                 interaction.customId.startsWith("confirm_upgrade_") ||
                 interaction.customId.startsWith("cancel_upgrade_")
