@@ -17,7 +17,6 @@ import {
 } from "./structures";
 import { fetchHistory } from "./history";
 import { setMilestones, listMilestones } from "./milestones";
-import { Message } from 'discord.js';
 
 export function registerCommands(bot: Client, db: Database) {
     bot.on("messageCreate", async (message: Message) => {
