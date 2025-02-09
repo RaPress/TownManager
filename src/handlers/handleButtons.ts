@@ -1,9 +1,9 @@
 import { Client, Interaction, ButtonInteraction } from "discord.js";
-import { Database } from "sqlite3";
+import { TownDatabase } from "../database/db";
 import { handleVote } from "../commands/voting";
 import { handleUpgradeInteraction } from "../commands/upgrade";
 
-export function handleButtons(bot: Client, db: Database) {
+export function handleButtons(bot: Client, db: TownDatabase) {
     bot.on("interactionCreate", async (interaction: Interaction) => {
         if (!interaction.isButton()) return;
 

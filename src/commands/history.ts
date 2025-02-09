@@ -1,6 +1,7 @@
 import { Message } from "discord.js";
 import { TownDatabase } from "../database/db";
-import { HistoryLog } from "../types/database";
+import { HistoryLog } from "../types/dbTypes";
+import { Logger } from "../utils/logger";
 
 /**
  * Fetches and displays the history of actions in the town.
@@ -15,12 +16,18 @@ export async function fetchHistory(message: Message, db: TownDatabase): Promise<
         }
 
         const formattedHistory = history
-            .map((h) => `📌 **${new Date(h.timestamp).toLocaleString()}** - ${h.action}`)
+            .map((h) => `📌 **${new Date(h.timestamp).toLocaleString()}** - ${h.action_type}: ${h.description}`)
             .join("\n");
 
         await message.reply(`📜 **Recent History:**\n${formattedHistory}`);
+        await db.logHistory(
+            message.guild!.id,
+            "history_viewed",
+            `📜 Checked the history log`,
+            message.author.username
+        );
+
     } catch (error) {
-        console.error("Error fetching history:", error);
-        await message.reply("❌ Error fetching history.");
+        await Logger.handleError(message, "fetchHistory", error, "❌ Error fetching history.");
     }
 }

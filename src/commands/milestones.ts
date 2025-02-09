@@ -1,33 +1,41 @@
 import { Message } from "discord.js";
+import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
+import { Milestone } from "../types/dbTypes";
 
 /**
  * Sets a new milestone for the town.
  */
 export async function setMilestones(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {
-    if (args.length < 2) {
-        await message.reply("❌ Please provide a milestone name and value.");
+    if (args.length < 3) {
+        await message.reply("❌ Please provide a structure ID, level, and required votes.");
         return;
     }
 
-    const milestoneName = args[0];
-    const milestoneValue = parseInt(args[1]);
+    const structureId = parseInt(args[0]);
+    const level = parseInt(args[1]);
+    const votesRequired = parseInt(args[2]);
 
-    if (isNaN(milestoneValue)) {
-        await message.reply("❌ Milestone value must be a number.");
+    if (isNaN(structureId) || isNaN(level) || isNaN(votesRequired)) {
+        await message.reply("❌ Structure ID, level, and votes must be numbers.");
         return;
     }
 
     try {
-        await db.setMilestone(guildId, milestoneName, milestoneValue);
-        await db.logHistory(guildId, `🏆 **${message.author.username}** set milestone **${milestoneName}** to **${milestoneValue}**.`);
+        await db.setMilestone(guildId, structureId, level, votesRequired);
+        await db.logHistory(
+            guildId,
+            "milestone_set",
+            `🏆 Set milestone for Structure ID **${structureId}**, Level **${level}** to require **${votesRequired}** votes.`,
+            message.author.username
+        );
 
-        await message.reply(`✅ Milestone **${milestoneName}** set to **${milestoneValue}**.`);
+        await message.reply(`✅ Milestone for Structure ID **${structureId}**, Level **${level}** set to require **${votesRequired}** votes.`);
     } catch (error) {
-        console.error("Error setting milestone:", error);
-        await message.reply("❌ Error setting milestone.");
+        await Logger.handleError(message, "setMilestones", error, "❌ Error setting milestone.");
     }
 }
+
 
 /**
  * Lists all milestones.
@@ -41,12 +49,17 @@ export async function listMilestones(message: Message, args: string[], db: TownD
             return;
         }
 
-        const milestoneList = milestones.map((m: any) => `🏆 ${m.name}: **${m.value}**`).join("\n");
-        await db.logHistory(guildId, `📜 **${message.author.username}** checked the milestone list.`);
+        const milestoneList = milestones.map((m: Milestone) => `🏆 ${m.structure_id} (Level ${m.level}): **${m.votes_required} votes required**`).join("\n");
+        await db.logHistory(
+            guildId,
+            "milestone_list_checked",
+            `📜 Checked the milestone list`,
+            message.author.username
+        );
+
 
         await message.reply(`📋 **Milestones List:**\n${milestoneList}`);
     } catch (error) {
-        console.error("Error fetching milestones:", error);
-        await message.reply("❌ Error fetching milestones.");
+        await Logger.handleError(message, "listMilestones", error, "❌ Error fetching milestones.");
     }
 }

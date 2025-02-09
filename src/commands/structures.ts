@@ -1,4 +1,6 @@
 import { Message } from "discord.js";
+import { Logger } from "../utils/logger";
+import { Structure } from "../types/dbTypes";
 import { TownDatabase } from "../database/db";
 
 export async function addStructure(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {
@@ -10,12 +12,17 @@ export async function addStructure(message: Message, args: string[], db: TownDat
     const structureName = args.join(" ");
     try {
         await db.addStructure(guildId, structureName);
-        await db.logHistory(guildId, `🏗️ **${message.author.username}** added structure: **${structureName}**`);
+        await db.logHistory(
+            guildId,
+            "structure_added",
+            `🏗️ Added structure: **${structureName}**`,
+            message.author.username
+        );
+
 
         await message.reply(`✅ Structure **${structureName}** added successfully!`);
     } catch (error) {
-        console.error("Error adding structure:", error);
-        await message.reply("❌ Error adding structure. Please try again.");
+        await Logger.handleError(message, "addStructure", error, "❌ Failed to add structure.");
     }
 }
 
@@ -29,10 +36,9 @@ export async function listStructures(message: Message, args: string[], db: TownD
             return;
         }
 
-        const structureList = structures.map((s: any) => `🏗️ ${s.name}`).join("\n");
+        const structureList = structures.map((s: Structure) => `🏗️ ${s.name} (Level ${s.level}) - Category: ${s.category}`).join("\n");
         await message.reply(`📋 **Structures List:**\n${structureList}`);
     } catch (error) {
-        console.error("Error fetching structures:", error);
-        await message.reply("❌ Error fetching structures.");
+        await Logger.handleError(message, "listStructures", error, "❌ Failed getting structures.");
     }
 }

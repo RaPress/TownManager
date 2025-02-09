@@ -1,4 +1,5 @@
 import { Message } from "discord.js";
+import { Logger } from "../utils/logger"
 import { TownDatabase } from "../database/db";
 
 /**
@@ -13,10 +14,15 @@ export async function endAdventure(message: Message, args: string[], db: TownDat
     }
 
     try {
-        await db.logHistory(guildId, `⚔️ **${message.author.username}** ended an adventure.`);
+        await db.logHistory(
+            guildId,
+            "adventure_ended",
+            `⚔️ Ended an adventure`,
+            message.author.username
+        );
+
         await message.reply("🏆 The adventure has ended! A voting session will now begin.");
     } catch (error) {
-        console.error("Error ending adventure:", error);
-        await message.reply("❌ Error ending adventure.");
+        await Logger.handleError(message, "endAdventure", error, "❌ Error ending adventure.");
     }
 }

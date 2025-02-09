@@ -91,14 +91,13 @@ async function sendInteractiveHelp(message: Message) {
         .setCustomId("help_menu")
         .setPlaceholder("📜 Select a command to view help")
         .addOptions(
-            Object.entries(commandCategories)
-                .flatMap(([category, commands]) =>
-                    Object.keys(commands).map((cmd) => ({
-                        label: `!${cmd}`,
-                        description: commands[cmd].description,
-                        value: cmd,
-                    }))
-                )
+            Object.entries(commandCategories).flatMap(([category, commands]) =>
+                Object.keys(commands).map((cmd) => ({
+                    label: `!${cmd} (${category})`,
+                    description: commands[cmd].description,
+                    value: cmd,
+                }))
+            )
         );
 
     const row = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(menu);

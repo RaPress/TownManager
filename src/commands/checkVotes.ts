@@ -1,6 +1,7 @@
 import { Message } from "discord.js";
+import { Vote } from "../types/dbTypes";
+import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
-import { Vote } from "../types/database";
 
 /**
  * Checks and displays the current votes.
@@ -16,18 +17,22 @@ export async function checkVotes(message: Message, args: string[], db: TownDatab
 
         const voteCounts: Record<string, number> = {};
         votes.forEach((vote) => {
-            voteCounts[vote.votedFor] = (voteCounts[vote.votedFor] || 0) + 1;
+            voteCounts[vote.structure_id] = (voteCounts[vote.structure_id] || 0) + 1;
         });
 
         const results = Object.entries(voteCounts)
-            .map(([playerId, count]) => `👤 <@${playerId}>: **${count} votes**`)
+            .map(([structureId, count]) => `🏗️ Structure ID **${structureId}**: **${count} votes**`)
             .join("\n");
 
-        await db.logHistory(guildId, `📊 **${message.author.username}** checked vote results.`);
+        await db.logHistory(
+            guildId,
+            "vote_results_checked",
+            `📊 Checked vote results`,
+            message.author.username
+        );
 
         await message.reply(`📊 **Voting Results:**\n${results}`);
     } catch (error) {
-        console.error("Error checking votes:", error);
-        await message.reply("❌ Error checking votes.");
+        await Logger.handleError(message, "checkVotes", error, "❌ Error checking votes.");
     }
 }

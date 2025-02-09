@@ -1,5 +1,6 @@
-import { Message, ButtonInteraction } from "discord.js";
+import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
+import { Message, ButtonInteraction } from "discord.js";
 
 export async function requestUpgradeConfirmation(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {
     if (args.length === 0) {
@@ -23,8 +24,7 @@ export async function requestUpgradeConfirmation(message: Message, args: string[
             ],
         });
     } catch (error) {
-        console.error("Error requesting upgrade:", error);
-        await message.reply("❌ Error requesting upgrade.");
+        await Logger.handleError(message, "requestUpgradeConfirmation", error, "❌ Error requesting upgrade.");
     }
 }
 
@@ -32,10 +32,21 @@ export async function handleUpgradeInteraction(interaction: ButtonInteraction, d
     const { customId, user } = interaction;
 
     if (customId.startsWith("confirm_upgrade_")) {
-        await db.logHistory(guildId, `⚙️ **${user.username}** confirmed an upgrade!`);
+        await db.logHistory(
+            guildId,
+            "upgrade_confirmed",
+            `⚙️ Confirmed an upgrade!`,
+            user.username
+        );
         await interaction.reply(`✅ Upgrade confirmed by ${user.username}!`);
     } else if (customId.startsWith("cancel_upgrade_")) {
-        await db.logHistory(guildId, `❌ **${user.username}** canceled an upgrade.`);
+        await db.logHistory(
+            guildId,
+            "upgrade_canceled",
+            `❌ Canceled an upgrade.`,
+            user.username
+        );
         await interaction.reply(`❌ Upgrade canceled by ${user.username}.`);
     }
+
 }

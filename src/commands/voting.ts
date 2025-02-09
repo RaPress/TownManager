@@ -1,5 +1,6 @@
-import { Message, ButtonInteraction } from "discord.js";
+import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
+import { Message, ButtonInteraction } from "discord.js";
 
 /**
  * Starts a voting session for mentioned players.
@@ -12,7 +13,13 @@ export async function startVoting(message: Message, mentionedPlayers: string[], 
 
     try {
         await db.startVoteSession(guildId, mentionedPlayers);
-        await db.logHistory(guildId, `🗳️ **${message.author.username}** started a vote for: ${mentionedPlayers.map(id => `<@${id}>`).join(", ")}`);
+        await db.logHistory(
+            guildId,
+            "vote_started", // Action Type
+            `🗳️ Started a vote for: ${mentionedPlayers.map(id => `<@${id}>`).join(", ")}`, // Description
+            message.author.username // User
+        );
+
 
         const voteButtons = mentionedPlayers.map((id) => ({
             type: 2,
@@ -26,8 +33,7 @@ export async function startVoting(message: Message, mentionedPlayers: string[], 
             components: [{ type: 1, components: voteButtons }],
         });
     } catch (error) {
-        console.error("Error starting vote:", error);
-        await message.reply("❌ Error starting vote. Please try again.");
+        await Logger.handleError(message, "startVoting", error, "❌ Error starting vote. Please try again.");
     }
 }
 
@@ -36,13 +42,28 @@ export async function startVoting(message: Message, mentionedPlayers: string[], 
  */
 export async function handleVote(interaction: ButtonInteraction, db: TownDatabase): Promise<void> {
     const voterId = interaction.user.id;
-    const votedFor = interaction.customId.replace("vote_", "");
+    const structureId = parseInt(interaction.customId.replace("vote_", ""), 10);
+    const guildId = interaction.guildId;
+
+    if (!guildId) {
+        await interaction.reply("❌ Error: Unable to determine guild.");
+        return;
+    }
 
     try {
-        await db.recordVote(voterId, votedFor);
-        await interaction.reply(`✅ Your vote has been recorded for <@${votedFor}>!`);
+        // Get the latest adventure ID for this guild
+        const adventureId = await db.getLatestAdventureId(guildId);
+
+        if (!adventureId) {
+            await interaction.reply("❌ No active adventure found for voting.");
+            return;
+        }
+
+        // Record the vote
+        await db.recordVote(voterId, structureId, adventureId, 1, guildId);
+
+        await interaction.reply(`✅ Your vote has been recorded for <@${structureId}>!`);
     } catch (error) {
-        console.error("Error handling vote:", error);
-        await interaction.reply("❌ Error recording your vote.");
+        await Logger.handleError(interaction.message, "handleVote", error, "❌ Error recording your vote.");
     }
 }

@@ -2,18 +2,24 @@ import {
     Client,
     GatewayIntentBits,
     Partials,
-    Interaction,
-    ButtonInteraction,
 } from "discord.js";
 import * as dotenv from "dotenv";
-import { db } from "./database";
-import { registerCommands } from "./commands";
-import { registerHelpCommand } from "./help";
-import { handleUpgradeInteraction } from "./commands/upgrade";
+import { TownDatabase } from "./database/db"; // ✅ Import the correct class
+import { registerCommands } from "./handlers/registerCommands";
+import { registerHelpCommand } from "./commands/help";
+import { handleButtons } from "./handlers/handleButtons";
+import { handleInteractions } from "./handlers/handleInteractions";
+import { Logger } from "./utils/logger";
+import { db as rawDb } from "./database/database"; // ✅ Import raw SQLite instance
 
 dotenv.config();
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
+
+if (!TOKEN) {
+    console.error("❌ Missing DISCORD_BOT_TOKEN in environment variables!");
+    process.exit(1); // Stop execution if no token is found
+}
 
 const bot = new Client({
     intents: [
@@ -25,51 +31,26 @@ const bot = new Client({
     partials: [Partials.Channel],
 });
 
+// ✅ Create a TownDatabase instance with SQLite3
+const townDb = new TownDatabase(rawDb); // ✅ Correctly wrapping the raw DB
+
 // ✅ Register Commands & Help
-registerCommands(bot, db);
+registerCommands(bot, townDb);
 registerHelpCommand(bot);
+
+// ✅ Register Interaction & Button Handlers
+handleInteractions(bot);
+handleButtons(bot, townDb);
 
 // ✅ Event: Bot Ready
 bot.once("ready", () => {
     console.log(`✅ Logged in as ${bot.user?.tag}`);
 });
 
-// ✅ Event: Listen for ALL interactions (buttons, slash commands, etc.)
-bot.on("interactionCreate", async (interaction: Interaction) => {
-    if (!interaction.guild) {
-        console.warn("⚠ Interaction received outside of a server.");
-        return;
-    }
+// ✅ Event: Log Warnings & Errors with Centralized Logger
+bot.on("warn", (warning) => Logger.logInfo(`⚠ ${warning}`));
+bot.on("error", (error) => Logger.logError("Discord Client Error", error));
+bot.on("debug", (debugInfo) => Logger.logInfo(`🔍 ${debugInfo}`));
 
-    const guildId = interaction.guild.id;
-
-    if (interaction.isButton()) {
-        console.log(
-            `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag} (Server: ${guildId})`,
-        );
-
-        if (
-            interaction.customId.startsWith("confirm_upgrade_") ||
-            interaction.customId.startsWith("cancel_upgrade_")
-        ) {
-            console.log(
-                "🔧 Upgrade button detected, passing to handleUpgradeInteraction.",
-            );
-            await handleUpgradeInteraction(
-                interaction as ButtonInteraction,
-                db,
-                guildId
-            );
-        } else {
-            console.warn("⚠ Button clicked but no handler exists for it.");
-        }
-    }
-});
-
-// ✅ Event: Log warnings & errors
-bot.on("warn", console.warn);
-bot.on("error", console.error);
-bot.on("debug", console.log);
-
-// ✅ Start the bot
+// ✅ Start the Bot
 bot.login(TOKEN);
