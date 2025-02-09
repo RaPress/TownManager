@@ -1,1 +1,17 @@
+# NPM
+npm-debug.*
+node_modules
+
+# Misc
+*.scssc
+*.log
+*.swp
+.DS_Store
+Thumbs.db
+.sass-cache
 .env
+.cache
+
+# VS Code Stuff
+.vscode/settings.json
+eslint.config.mjs
