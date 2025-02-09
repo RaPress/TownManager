@@ -1,6 +1,6 @@
 import { Message } from "discord.js";
 import { Logger } from "../utils/logger";
-import { Structure } from "../types/dbTypes";
+import { Structure } from "../database/dbTypes";
 import { TownDatabase } from "../database/db";
 
 export async function addStructure(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {

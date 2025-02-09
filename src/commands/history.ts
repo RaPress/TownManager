@@ -1,6 +1,6 @@
 import { Message } from "discord.js";
 import { TownDatabase } from "../database/db";
-import { HistoryLog } from "../types/dbTypes";
+import { HistoryLog } from "../database/dbTypes";
 import { Logger } from "../utils/logger";
 
 /**

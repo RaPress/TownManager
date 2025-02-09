@@ -6,7 +6,7 @@ import {
     Vote,
     HistoryLog,
     AdventureRow
-} from "../types/dbTypes";
+} from "./dbTypes";
 
 export class TownDatabase {
     private db: Database;

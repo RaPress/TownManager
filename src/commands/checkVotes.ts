@@ -1,5 +1,5 @@
 import { Message } from "discord.js";
-import { Vote } from "../types/dbTypes";
+import { Vote } from "../database/dbTypes";
 import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
 

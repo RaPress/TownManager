@@ -1,7 +1,7 @@
 import { Message } from "discord.js";
 import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
-import { Milestone } from "../types/dbTypes";
+import { Milestone } from "../database/dbTypes";
 
 /**
  * Sets a new milestone for the town.
