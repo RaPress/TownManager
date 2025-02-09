@@ -9,7 +9,7 @@ import * as dotenv from "dotenv";
 import { db } from "./database";
 import { registerCommands } from "./commands";
 import { registerHelpCommand } from "./help";
-import { handleUpgradeInteraction } from "./upgrade";
+import { handleUpgradeInteraction } from "./commands/upgrade";
 
 dotenv.config();
 
