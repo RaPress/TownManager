@@ -53,27 +53,28 @@ async function handleCommand(
     args: string[],
     db: Database,
     guildId: string
-) {
+): Promise<void> {
     const commandHandlers: Record<
         string,
         (msg: Message, args: string[], db: Database, guildId: string) => Promise<void>
     > = {
         "!add_structure": addStructure,
-        "!structures": async (msg, args, db, guildId) => { await listStructures(msg, args, db); },
         "!check_votes": checkVotes,
         "!set_milestones": async (msg, args, db, guildId) => { await setMilestones(msg, args, db); },
         "!milestones": async (msg, args, db, guildId) => { await listMilestones(msg, args, db); },
-        "!end_adventure": endAdventure
+        "!end_adventure": endAdventure,
     };
 
-    if (command === "!upgrade") {
+    if (command === "!structures") {
+        await listStructures(message, args, db).then(() => Promise.resolve());
+    } else if (command === "!upgrade") {
         if (args.length > 0) {
             await requestUpgradeConfirmation(message, args, db, guildId);
         } else {
             message.reply("❌ Please provide a structure name.");
         }
     } else if (command === "!history") {
-        await fetchHistory(message, db);
+        await fetchHistory(message, db).then(() => Promise.resolve());
     } else {
         const handler = commandHandlers[command];
         if (handler) {
@@ -83,7 +84,7 @@ async function handleCommand(
 }
 
 // ✅ Extracted function to handle interactions
-async function handleInteraction(interaction: ButtonInteraction, db: Database) {
+async function handleInteraction(interaction: ButtonInteraction, db: Database): Promise<void> {
     if (interaction.customId.startsWith("vote_")) {
         await handleVote(interaction, db);
     } else if (
@@ -108,14 +109,16 @@ function isUserGM(message: Message): boolean {
 }
 
 // ✅ GM-Only Command: Start Voting after Adventure
-async function endAdventure(message: Message, args: string[], db: Database, guildId: string) {
+async function endAdventure(message: Message, args: string[], db: Database, guildId: string): Promise<void> {
     if (!isUserGM(message)) {
-        return message.reply("❌ You do not have permission to use this command.");
+        await message.reply("❌ You do not have permission to use this command.");
+        return;
     }
 
     const mentionedPlayers = message.mentions.users.map((user) => user.id);
     if (mentionedPlayers.length === 0) {
-        return message.reply("❌ You must mention players who will participate in the vote.");
+        await message.reply("❌ You must mention players who will participate in the vote.");
+        return;
     }
 
     await startVoting(message, mentionedPlayers, db, guildId);
