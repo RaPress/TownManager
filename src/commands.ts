@@ -17,109 +17,99 @@ import {
 } from "./structures";
 import { fetchHistory } from "./history";
 import { setMilestones, listMilestones } from "./milestones";
+import { Message } from 'discord.js';
 
 export function registerCommands(bot: Client, db: Database) {
     bot.on("messageCreate", async (message: Message) => {
-        if (message.author.bot || !message.guild) return;
+        if (message.author.bot || !message.guild) return; // ✅ Ensure command comes from a server
 
         const args = message.content.split(" ");
         const command = args.shift()?.toLowerCase();
-        if (!command) return; // ✅ Ensure command is not undefined
-
-        const guildId = message.guild.id;
+        const guildId = message.guild.id; // ✅ Get server ID
 
         console.log(
             `📢 Command received: ${command} from ${message.author.tag} in ${message.guild.name}`,
         );
 
-        await handleCommand(command, message, args, db, guildId);
+        switch (command) {
+            case "!add_structure":
+                await addStructure(message, args, db, guildId);
+                break;
+            case "!structures":
+                await listStructures(message, args, db);
+                break;
+            case "!check_votes":
+                await checkVotes(message, args, db, guildId);
+                break;
+            case "!upgrade":
+                if (args.length > 0) {
+                    await requestUpgradeConfirmation(message, args, db, guildId);
+                } else {
+                    message.reply("❌ Please provide a structure name.");
+                }
+                break;
+            case "!set_milestones":
+                await setMilestones(message, args, db);
+                break;
+            case "!milestones":
+                await listMilestones(message, args, db);
+                break;
+            case "!end_adventure":
+                await endAdventure(message, args, db, guildId);
+                break;
+            case "!history":
+                await fetchHistory(message, db);
+                break;
+        }
     });
 
     bot.on("interactionCreate", async (interaction: Interaction) => {
-        if (!interaction.isButton()) return;
+        if (interaction.isButton()) {
+            console.log(
+                `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
+            );
 
-        console.log(
-            `🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`,
-        );
+            if (interaction.customId.startsWith("vote_")) {
+                await handleVote(interaction as ButtonInteraction, db);
+            } else if (
+                interaction.customId.startsWith("confirm_upgrade_") ||
+                interaction.customId.startsWith("cancel_upgrade_")
+            ) {
+                const customIdParts = interaction.customId.split("_");
+                const extractedGuildId = customIdParts.length > 3 ? customIdParts[3] : null;
 
-        await handleInteraction(interaction as ButtonInteraction, db);
+                await handleUpgradeInteraction(
+                    interaction as ButtonInteraction,
+                    db,
+                    extractedGuildId || "dm"
+                );
+
+            }
+        }
     });
 }
 
-// ✅ Extracted function to handle commands
-async function handleCommand(
-    command: string,
-    message: Message,
-    args: string[],
-    db: Database,
-    guildId: string
-): Promise<void> {
-    const commandHandlers: Record<
-        string,
-        (msg: Message, args: string[], db: Database, guildId: string) => Promise<void>
-    > = {
-        "!add_structure": addStructure,
-        "!check_votes": checkVotes,
-        "!set_milestones": async (msg, args, db, guildId) => { await setMilestones(msg, args, db); },
-        "!milestones": async (msg, args, db, guildId) => { await listMilestones(msg, args, db); },
-        "!end_adventure": endAdventure,
-    };
-
-    if (command === "!structures") {
-        await listStructures(message, args, db).then(() => Promise.resolve());
-    } else if (command === "!upgrade") {
-        if (args.length > 0) {
-            await requestUpgradeConfirmation(message, args, db, guildId);
-        } else {
-            message.reply("❌ Please provide a structure name.");
-        }
-    } else if (command === "!history") {
-        await fetchHistory(message, db).then(() => Promise.resolve());
-    } else {
-        const handler = commandHandlers[command];
-        if (handler) {
-            await handler(message, args, db, guildId);
-        }
-    }
-}
-
-// ✅ Extracted function to handle interactions
-async function handleInteraction(interaction: ButtonInteraction, db: Database): Promise<void> {
-    if (interaction.customId.startsWith("vote_")) {
-        await handleVote(interaction, db);
-    } else if (
-        interaction.customId.startsWith("confirm_upgrade_") ||
-        interaction.customId.startsWith("cancel_upgrade_")
-    ) {
-        const customIdParts = interaction.customId.split("_");
-        const extractedGuildId = customIdParts.length > 3 ? customIdParts[3] : null;
-
-        await handleUpgradeInteraction(
-            interaction,
-            db,
-            extractedGuildId || "dm"
-        );
-    }
-}
-
-// ✅ Extracted function to check GM role
-function isUserGM(message: Message): boolean {
-    const gmRole = message.guild?.roles.cache.find((r) => r.name === "GM");
-    return gmRole ? message.member?.roles.cache.has(gmRole.id) ?? false : false;
-}
-
 // ✅ GM-Only Command: Start Voting after Adventure
-async function endAdventure(message: Message, args: string[], db: Database, guildId: string): Promise<void> {
-    if (!isUserGM(message)) {
-        await message.reply("❌ You do not have permission to use this command.");
-        return;
-    }
+async function endAdventure(message: Message, args: string[], db: Database, guildId: string) {
+    if (!hasGmRole) return;
 
     const mentionedPlayers = message.mentions.users.map((user) => user.id);
+
     if (mentionedPlayers.length === 0) {
-        await message.reply("❌ You must mention players who will participate in the vote.");
-        return;
+        return message.reply(
+            "❌ You must mention players who will participate in the vote.",
+        );
     }
 
     await startVoting(message, mentionedPlayers, db, guildId);
+}
+
+async function hasGmRole(message: Message) {
+    const gmRole = message.guild?.roles.cache.find((r) => r.name === "GM");
+
+    if (!gmRole || !message.member?.roles.cache.has(gmRole.id)) {
+        return message.reply(
+            "❌ You do not have permission to use this command.",
+        );
+    }
 }
