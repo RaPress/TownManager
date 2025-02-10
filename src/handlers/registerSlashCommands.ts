@@ -1,27 +1,26 @@
-import { REST, Routes } from "discord.js";
+import { REST, Routes, Client } from "discord.js";
 import * as dotenv from "dotenv";
-import { CommandList } from "../commands/commandList"; // List of Slash Commands
+import { CommandList } from "../commands/commandList";
 
-dotenv.config();
+dotenv.config(); // ✅ Load environment variables
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-const GUILD_ID = process.env.DISCORD_GUILD_ID;
 
-if (!TOKEN || !CLIENT_ID || !GUILD_ID) {
+if (!TOKEN || !CLIENT_ID) {
     console.error("❌ Missing environment variables for command registration!");
-    process.exit(1);
+    process.exit(1); // ⛔ Stop the bot if variables are missing
 }
 
-export const registerSlashCommands = async () => {
-    const commands = CommandList.map((cmd) => cmd.data.toJSON()); // Convert commands to Discord API format
+export const registerSlashCommands = async (bot: Client) => {
+    const commands = CommandList.map(cmd => cmd.data.toJSON());
 
     const rest = new REST({ version: "10" }).setToken(TOKEN);
 
     try {
-        console.log("🔄 Registering Slash Commands...");
-        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-        console.log("✅ Slash Commands registered successfully.");
+        console.log("🔄 Registering Slash Commands GLOBALLY...");
+        await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+        console.log("✅ Global Slash Commands registered successfully.");
     } catch (error) {
         console.error("❌ Error registering commands:", error);
     }
