@@ -2,17 +2,17 @@ import { REST, Routes, Client } from "discord.js";
 import * as dotenv from "dotenv";
 import { CommandList } from "../commands/commandList";
 
-dotenv.config(); // ✅ Load environment variables
+dotenv.config();
 
 const TOKEN = process.env.DISCORD_BOT_TOKEN;
 const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 
 if (!TOKEN || !CLIENT_ID) {
     console.error("❌ Missing environment variables for command registration!");
-    process.exit(1); // ⛔ Stop the bot if variables are missing
+    process.exit(1);
 }
 
-export const registerSlashCommands = async (bot: Client) => {
+export const registerSlashCommands = async () => {
     const commands = CommandList.map(cmd => cmd.data.toJSON());
 
     const rest = new REST({ version: "10" }).setToken(TOKEN);
