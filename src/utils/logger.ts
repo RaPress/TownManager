@@ -1,4 +1,4 @@
-import { Message } from "discord.js";
+import { Message, CommandInteraction, ButtonInteraction } from "discord.js";
 
 export class Logger {
     static logInfo(message: string): void {
@@ -11,38 +11,33 @@ export class Logger {
 
     /**
      * Handles errors by logging them and optionally sending a response to Discord.
-     * @param message Discord Message (optional, if responding to a user)
+     * @param source Discord Message or Interaction (optional, if responding to a user)
      * @param context Where the error occurred (for logging)
      * @param error The error object
      * @param userFriendlyMessage (Optional) Message to send in Discord
      */
     static async handleError(
-        message: Message | null,
+        source: Message | CommandInteraction | ButtonInteraction | null,
         context: string,
         error: unknown,
         userFriendlyMessage?: string
     ): Promise<void> {
         this.logError(context, error);
 
-        if (message) {
-            if (error instanceof Error) {
-                // ✅ Handle user errors (e.g., missing arguments, invalid input)
-                if (error.message.includes("Missing required argument")) {
-                    await message.reply(
-                        `❌ Missing argument.\nUse \`!help ${message.content.split(" ")[0]}\` for correct usage.`
-                    );
-                    return;
-                }
-                if (error.message.includes("Invalid argument")) {
-                    await message.reply(
-                        `❌ Invalid argument.\nUse \`!help ${message.content.split(" ")[0]}\` for correct usage.`
-                    );
-                    return;
+        if (!source) return;
+
+        try {
+            if (source instanceof Message) {
+                await source.reply(userFriendlyMessage || "❌ An unexpected error occurred.");
+            } else if (source instanceof CommandInteraction) {
+                if (source.replied || source.deferred) {
+                    await source.followUp({ content: userFriendlyMessage || "❌ An unexpected error occurred.", ephemeral: true });
+                } else {
+                    await source.reply({ content: userFriendlyMessage || "❌ An unexpected error occurred.", ephemeral: true });
                 }
             }
-
-            // ✅ Default error message for unexpected errors
-            await message.reply(userFriendlyMessage || "❌ An unexpected error occurred.");
+        } catch (replyError) {
+            console.error("❌ Failed to send error response:", replyError);
         }
     }
 }

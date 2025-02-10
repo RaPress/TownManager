@@ -2,15 +2,17 @@ import {
     Client,
     GatewayIntentBits,
     Partials,
+    Interaction,
 } from "discord.js";
 import * as dotenv from "dotenv";
-import { TownDatabase } from "./database/db"; // ✅ Import the correct class
-import { registerCommands } from "./handlers/registerCommands";
+import { TownDatabase } from "./database/db";
+import { registerSlashCommands } from "./handlers/registerSlashCommands";
 import { registerHelpCommand } from "./commands/help";
 import { handleButtons } from "./handlers/handleButtons";
 import { handleInteractions } from "./handlers/handleInteractions";
+import { handleSlashCommand } from "./handlers/handleSlashCommand";
 import { Logger } from "./utils/logger";
-import { db as rawDb } from "./database/database"; // ✅ Import raw SQLite instance
+import { db as rawDb } from "./database/database";
 
 dotenv.config();
 
@@ -18,7 +20,7 @@ const TOKEN = process.env.DISCORD_BOT_TOKEN;
 
 if (!TOKEN) {
     console.error("❌ Missing DISCORD_BOT_TOKEN in environment variables!");
-    process.exit(1); // Stop execution if no token is found
+    process.exit(1);
 }
 
 const bot = new Client({
@@ -32,10 +34,12 @@ const bot = new Client({
 });
 
 // ✅ Create a TownDatabase instance with SQLite3
-const townDb = new TownDatabase(rawDb); // ✅ Correctly wrapping the raw DB
+const townDb = new TownDatabase(rawDb);
 
-// ✅ Register Commands & Help
-registerCommands(bot, townDb);
+// ✅ Register Slash Commands
+registerSlashCommands();
+
+// ✅ Register Help Command (if needed for buttons or other UI elements)
 registerHelpCommand(bot);
 
 // ✅ Register Interaction & Button Handlers
@@ -45,6 +49,13 @@ handleButtons(bot, townDb);
 // ✅ Event: Bot Ready
 bot.once("ready", () => {
     console.log(`✅ Logged in as ${bot.user?.tag}`);
+});
+
+// ✅ Slash Command Handler
+bot.on("interactionCreate", async (interaction: Interaction) => {
+    if (interaction.isChatInputCommand()) {
+        await handleSlashCommand(interaction, townDb);
+    }
 });
 
 // ✅ Event: Log Warnings & Errors with Centralized Logger
