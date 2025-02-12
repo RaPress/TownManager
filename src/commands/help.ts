@@ -46,7 +46,15 @@ const commandCategories: Record<string, Record<string, { description: string; us
     "📜 Structure Commands": {
         add_structure: {
             description: "Adds a new structure.",
-            usage: "Usage: `!add_structure <name> [category]`",
+            usage: "Usage: `!add_structure <name> category=<category>`",
+        },
+        remove_structure: {
+            description: "Removes an existing structure.",
+            usage: "Usage: `!remove_structure <name>`",
+        },
+        update_structure: {
+            description: "Updates a structure's category.",
+            usage: "Usage: `!update_structure <name> category=<new_category>`",
         },
         structures: {
             description: "Lists all structures and levels.",
