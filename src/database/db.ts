@@ -45,6 +45,24 @@ export class TownDatabase {
         });
     }
 
+    async removeStructure(guildId: string, structureName: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                "DELETE FROM structures WHERE guild_id = ? AND name = ?",
+                [guildId, structureName],
+                function (err) {
+                    if (err) {
+                        Logger.logError("removeStructure", err);
+                        reject(err);
+                    } else {
+                        resolve(this.changes > 0);
+                    }
+                }
+            );
+        });
+    }
+
+
     async getMilestones(guildId: string): Promise<Milestone[]> {
         return new Promise((resolve, reject) => {
             this.db.all(
