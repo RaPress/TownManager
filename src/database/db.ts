@@ -30,11 +30,11 @@ export class TownDatabase {
         });
     }
 
-    async addStructure(guildId: string, name: string): Promise<void> {
+    async addStructure(guildId: string, name: string, category: string = "General"): Promise<void> {
         return new Promise((resolve, reject) => {
             this.db.run(
-                "INSERT INTO structures (guild_id, name) VALUES (?, ?)",
-                [guildId, name],
+                "INSERT INTO structures (guild_id, name, category) VALUES (?, ?, ?)",
+                [guildId, name, category],
                 (err) => {
                     if (err) {
                         Logger.logError("addStructure", err);
@@ -62,6 +62,20 @@ export class TownDatabase {
         });
     }
 
+    async updateStructureCategory(guildId: string, structureName: string, newCategory: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                "UPDATE structures SET category = ? WHERE guild_id = ? AND name = ?",
+                [newCategory, guildId, structureName],
+                (err) => {
+                    if (err) {
+                        Logger.logError("updateStructureCategory", err);
+                        reject(err);
+                    } else resolve();
+                }
+            );
+        });
+    }
 
     async getMilestones(guildId: string): Promise<Milestone[]> {
         return new Promise((resolve, reject) => {
@@ -115,6 +129,7 @@ export class TownDatabase {
                 [guildId],
                 function (err) {
                     if (err) {
+                        Logger.logError("insertAdventure", err);
                         reject(err);
                     } else {
                         resolve(this.lastID);
@@ -131,6 +146,7 @@ export class TownDatabase {
                 [userId, adventureId, guildId],
                 (err) => {
                     if (err) {
+                        Logger.logError("insertVote", err);
                         reject(err);
                     } else {
                         resolve();
@@ -139,7 +155,6 @@ export class TownDatabase {
             );
         });
     }
-
 
     async recordVote(userId: string, structureId: number, adventureId: number, votes: number, guildId: string): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -155,7 +170,6 @@ export class TownDatabase {
             );
         });
     }
-
 
     async getVotes(guildId: string): Promise<Vote[]> {
         return new Promise((resolve, reject) => {

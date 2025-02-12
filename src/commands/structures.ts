@@ -3,23 +3,37 @@ import { Logger } from "../utils/logger";
 import { Structure } from "../database/dbTypes";
 import { TownDatabase } from "../database/db";
 
-export async function addStructure(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {
+export async function addStructure(
+    message: Message,
+    args: string[],
+    db: TownDatabase,
+    guildId: string
+): Promise<void> {
     if (args.length === 0) {
         await message.reply("❌ Please provide a structure name.");
         return;
     }
 
-    const structureName = args.join(" ");
+    // Extract structure name & category from arguments
+    const structureName = args.filter(arg => !arg.startsWith("category=") && !arg.startsWith("cat=")).join(" ");
+    const categoryArg = args.find(arg => arg.startsWith("category=") || arg.startsWith("cat="));
+    const category = categoryArg ? categoryArg.split("=")[1] : "General"; // Default to 'General' if no category is given
+
+    if (!structureName) {
+        await message.reply("❌ Structure name cannot be empty.");
+        return;
+    }
+
     try {
-        await db.addStructure(guildId, structureName);
+        await db.addStructure(guildId, structureName, category);
         await db.logHistory(
             guildId,
             "structure_added",
-            `🏗️ Added structure: **${structureName}**`,
+            `🏗️ Added structure: **${structureName}** (Category: ${category})`,
             message.author.username
         );
 
-        await message.reply(`✅ Structure **${structureName}** added successfully!`);
+        await message.reply(`✅ Structure **${structureName}** added successfully in category **${category}**!`);
     } catch (error) {
         await Logger.handleError(message, "addStructure", error, "❌ Failed to add structure.");
     }
@@ -65,5 +79,39 @@ export async function removeStructure(message: Message, args: string[], db: Town
         await message.reply(`✅ Structure **${structureName}** removed successfully!`);
     } catch (error) {
         await Logger.handleError(message, "removeStructure", error, "❌ Failed to remove structure.");
+    }
+}
+export async function updateStructure(
+    message: Message,
+    args: string[],
+    db: TownDatabase,
+    guildId: string
+): Promise<void> {
+    if (args.length < 2) {
+        await message.reply("❌ Usage: `!update_structure <name> category=<new_category>`");
+        return;
+    }
+
+    const structureName = args.filter(arg => !arg.startsWith("category=") && !arg.startsWith("cat=")).join(" ");
+    const categoryArg = args.find(arg => arg.startsWith("category=") || arg.startsWith("cat="));
+    const newCategory = categoryArg ? categoryArg.split("=")[1] : null;
+
+    if (!structureName || !newCategory) {
+        await message.reply("❌ You must provide a structure name and new category.");
+        return;
+    }
+
+    try {
+        await db.updateStructureCategory(guildId, structureName, newCategory);
+        await db.logHistory(
+            guildId,
+            "structure_updated",
+            `🔄 Updated structure: **${structureName}** → Category: **${newCategory}**`,
+            message.author.username
+        );
+
+        await message.reply(`✅ Structure **${structureName}** updated to category **${newCategory}**.`);
+    } catch (error) {
+        await Logger.handleError(message, "updateStructure", error, "❌ Failed to update structure.");
     }
 }

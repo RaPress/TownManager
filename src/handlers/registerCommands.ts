@@ -1,6 +1,6 @@
 import { Client, Message } from "discord.js";
 import { TownDatabase } from "../database/db";
-import { addStructure, listStructures } from "../commands/structures";
+import { addStructure, listStructures, removeStructure, updateStructure } from "../commands/structures";
 import { setMilestones, listMilestones } from "../commands/milestones";
 import { fetchHistory } from "../commands/history";
 import { checkVotes } from "../commands/checkVotes";
@@ -11,6 +11,8 @@ type CommandFunction = (msg: Message, args: string[], db: TownDatabase, guildId:
 
 const commandMap: Record<string, CommandFunction> = {
     "!add_structure": addStructure,
+    "!remove_structure": removeStructure,
+    "!update_structure": updateStructure,
     "!structures": listStructures,
     "!check_votes": checkVotes,
     "!set_milestones": setMilestones,
