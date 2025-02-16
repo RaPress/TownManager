@@ -6,7 +6,6 @@ import { fetchHistory } from "../commands/history";
 import { checkVotes } from "../commands/checkVotes";
 import { requestUpgradeConfirmation } from "../commands/upgrade";
 import { endAdventure } from "../commands/adventure";
-import { handleHelpCommand } from "../commands/help";
 import { parseArguments } from "../utils/commandParser";
 
 type CommandFunction = (msg: Message, args: Record<string, string>, db: TownDatabase, guildId: string) => Promise<void>;
@@ -56,12 +55,6 @@ export function registerCommands(bot: Client, db: TownDatabase) {
         const guildId = message.guild.id;
 
         console.log(`📢 Command received: ${subcommand} ${action || ""} from ${message.author.tag} in ${message.guild.name}`);
-
-        // ✅ Handle `town! help` separately
-        if (subcommand === "help") {
-            await handleHelpCommand(message, args);
-            return;
-        }
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
             await commandMap[subcommand][action](message, args, db, guildId);

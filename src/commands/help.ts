@@ -11,11 +11,11 @@ import { parseArguments } from "../utils/commandParser";
 
 export function registerHelpCommand(bot: Client) {
     bot.on("messageCreate", async (message: Message) => {
-        if (message.content.startsWith("town! help")) {
-            const argsArray = message.content.split(" ").slice(2);
-            const args = parseArguments(argsArray);
-            await handleHelpCommand(message, args);
-        }
+        if (!message.content.startsWith("town! help")) return;
+
+        const argsArray = message.content.split(" ").slice(2);
+        const args = parseArguments(argsArray);
+        await handleHelpCommand(message, args);
     });
 
     bot.on("interactionCreate", async (interaction) => {
@@ -27,7 +27,6 @@ export function registerHelpCommand(bot: Client) {
         }
     });
 }
-
 
 // ✅ Categorized Command List
 const commandCategories: Record<string, Record<string, { description: string; usage: string }>> = {
