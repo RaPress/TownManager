@@ -52,12 +52,18 @@ export async function listStructures(
             return;
         }
 
+        // If a category filter exists, apply it; otherwise, use all structures
         const filteredStructures = categoryFilter
             ? structures.filter(s => s.category.toLowerCase() === categoryFilter.toLowerCase())
             : structures;
 
+        if (!filteredStructures.length) {
+            await message.reply(`📭 No structures found in category **${categoryFilter}**.`);
+            return;
+        }
+
         const structureList = filteredStructures
-            .map(s => `🏗️ ${s.name} (Level ${s.level}) - Category: ${s.category}`)
+            .map(s => `🏗️ **${s.name}** (Level ${s.level}) - Category: **${s.category}**`)
             .join("\n");
 
         await message.reply(`📋 **Structures List:**\n${structureList}`);

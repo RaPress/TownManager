@@ -60,7 +60,7 @@ export function registerCommands(bot: Client, db: TownDatabase) {
         // ✅ Handle `town! help` separately
         if (subcommand === "help") {
             await handleHelpCommand(message, args);
-            return; // ✅ Prevent "Invalid command" message
+            return;
         }
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
