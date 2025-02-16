@@ -6,6 +6,7 @@ import { fetchHistory } from "../commands/history";
 import { checkVotes } from "../commands/checkVotes";
 import { requestUpgradeConfirmation } from "../commands/upgrade";
 import { endAdventure } from "../commands/adventure";
+import { handleHelpCommand } from "../commands/help";
 import { parseArguments } from "../utils/commandParser";
 
 type CommandFunction = (msg: Message, args: Record<string, string>, db: TownDatabase, guildId: string) => Promise<void>;
@@ -15,11 +16,11 @@ const commandMap: Record<string, Record<string, CommandFunction>> = {
         add: addStructure,
         remove: removeStructure,
         update: updateStructure,
-        list: async (msg, args, db, guildId) => listStructures(msg, args, db, guildId), // ✅ Ensures args is a dictionary
+        list: async (msg, args, db, guildId) => listStructures(msg, args, db, guildId),
     },
     milestone: {
         set: setMilestone,
-        list: async (msg, args, db, guildId) => listMilestones(msg, args, db, guildId), // ✅ Fixes export issue & argument structure
+        list: async (msg, args, db, guildId) => listMilestones(msg, args, db, guildId),
     },
     history: {
         show: async (msg, args, db) => fetchHistory(msg, db),
@@ -33,7 +34,7 @@ const commandMap: Record<string, Record<string, CommandFunction>> = {
     upgrade: {
         confirm: async (msg, args, db, guildId) => {
             if (args.name) {
-                await requestUpgradeConfirmation(msg, { name: args.name }, db, guildId);
+                await requestUpgradeConfirmation(msg, args, db, guildId);
             } else {
                 await msg.reply("❌ Please provide a structure name.");
             }
@@ -46,15 +47,21 @@ export function registerCommands(bot: Client, db: TownDatabase) {
         if (message.author.bot || !message.guild) return;
 
         const content = message.content.trim();
-        if (!content.startsWith("town!")) return; // ✅ Ensure commands start with "town!"
+        if (!content.startsWith("town!")) return;
 
-        const argsArray = content.split(/\s+/).slice(1); // Remove "town!"
+        const argsArray = content.split(/\s+/).slice(1);
         const subcommand = argsArray.shift()?.toLowerCase();
         const action = argsArray.shift()?.toLowerCase();
-        const args = parseArguments(argsArray); // ✅ Convert args to key-value pairs
+        const args = parseArguments(argsArray);
         const guildId = message.guild.id;
 
-        console.log(`📢 Command received: ${subcommand} ${action} from ${message.author.tag} in ${message.guild.name}`);
+        console.log(`📢 Command received: ${subcommand} ${action || ""} from ${message.author.tag} in ${message.guild.name}`);
+
+        // ✅ Handle `town! help` separately
+        if (subcommand === "help") {
+            await handleHelpCommand(message, args);
+            return; // ✅ Prevent "Invalid command" message
+        }
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
             await commandMap[subcommand][action](message, args, db, guildId);

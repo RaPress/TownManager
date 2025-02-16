@@ -7,17 +7,14 @@ import {
     StringSelectMenuInteraction,
 } from "discord.js";
 
+import { parseArguments } from "../utils/commandParser";
+
 export function registerHelpCommand(bot: Client) {
     bot.on("messageCreate", async (message: Message) => {
         if (message.content.startsWith("town! help")) {
-            const args = message.content.split(" ");
-            const commandName = args[2];
-
-            if (commandName) {
-                await sendCommandHelp(message, commandName);
-            } else {
-                await sendInteractiveHelp(message);
-            }
+            const argsArray = message.content.split(" ").slice(2);
+            const args = parseArguments(argsArray);
+            await handleHelpCommand(message, args);
         }
     });
 
@@ -31,6 +28,7 @@ export function registerHelpCommand(bot: Client) {
     });
 }
 
+
 // ✅ Categorized Command List
 const commandCategories: Record<string, Record<string, { description: string; usage: string }>> = {
     "🏛 General Commands": {
@@ -40,7 +38,7 @@ const commandCategories: Record<string, Record<string, { description: string; us
         },
         history: {
             description: "Displays town history logs.",
-            usage: "Usage: `town! history [structures | votes | milestones]`",
+            usage: "Usage: `town! history show`",
         },
     },
     "📜 Structure Commands": {
@@ -66,9 +64,9 @@ const commandCategories: Record<string, Record<string, { description: string; us
         },
     },
     "📊 Voting Commands": {
-        "votes check": {
+        "vote check": {
             description: "Checks votes for a structure.",
-            usage: "Usage: `town! votes check name=\"StructureName\"`",
+            usage: "Usage: `town! vote check name=\"StructureName\"`",
         },
         "adventure end": {
             description: "Ends an adventure and starts voting.",
@@ -76,18 +74,34 @@ const commandCategories: Record<string, Record<string, { description: string; us
         },
     },
     "📏 Milestone Commands": {
-        "milestones list": {
+        "milestone list": {
             description: "Lists milestones for structures.",
-            usage: "Usage: `town! milestones list [structure_name]`",
+            usage: "Usage: `town! milestone list name=\"StructureName\"`",
         },
-        "milestones set": {
+        "milestone set": {
             description: "Sets milestone votes required for leveling up.",
-            usage: "Usage: `town! milestones set name=\"StructureName\" votes=\"1 2 3 4 5 6 7 8 9 10\"`",
+            usage: "Usage: `town! milestone set name=\"StructureName\" level=3 votes=10`",
         },
     },
 };
 
-// ✅ Sends an Interactive Dropdown Menu for Help
+/**
+ * Handles the `town! help` command.
+ */
+export async function handleHelpCommand(message: Message, args: Record<string, string>) {
+    const commandName = args.command; // Extract command from parsed arguments
+
+    if (commandName) {
+        await sendCommandHelp(message, commandName);
+    } else {
+        await sendInteractiveHelp(message);
+    }
+}
+
+
+/**
+ * Sends an Interactive Dropdown Menu for Help.
+ */
 async function sendInteractiveHelp(message: Message) {
     const embed = new EmbedBuilder()
         .setTitle("📖 Town Manager Help")
@@ -113,7 +127,9 @@ async function sendInteractiveHelp(message: Message) {
     await message.reply({ embeds: [embed], components: [row] });
 }
 
-// ✅ Sends Detailed Help for a Specific Command
+/**
+ * Sends Detailed Help for a Specific Command.
+ */
 async function sendCommandHelp(target: Message | StringSelectMenuInteraction, commandName: string) {
     const commandInfo = Object.values(commandCategories)
         .flatMap((category) => Object.entries(category))
@@ -136,7 +152,9 @@ async function sendCommandHelp(target: Message | StringSelectMenuInteraction, co
     }
 }
 
-// ✅ Suggest Similar Commands for Mistyped Commands
+/**
+ * Suggests the closest command when an invalid one is entered.
+ */
 async function sendCommandSuggestion(target: Message | StringSelectMenuInteraction, invalidCommand: string) {
     const availableCommands = Object.values(commandCategories)
         .flatMap((category) => Object.keys(category));
