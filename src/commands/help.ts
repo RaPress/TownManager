@@ -9,9 +9,9 @@ import {
 
 export function registerHelpCommand(bot: Client) {
     bot.on("messageCreate", async (message: Message) => {
-        if (message.content.startsWith("!help")) {
+        if (message.content.startsWith("town! help")) {
             const args = message.content.split(" ");
-            const commandName = args[1];
+            const commandName = args[2];
 
             if (commandName) {
                 await sendCommandHelp(message, commandName);
@@ -36,53 +36,53 @@ const commandCategories: Record<string, Record<string, { description: string; us
     "🏛 General Commands": {
         help: {
             description: "Shows this help menu.",
-            usage: "Usage: `!help [command]`",
+            usage: "Usage: `town! help [command]`",
         },
         history: {
             description: "Displays town history logs.",
-            usage: "Usage: `!history [structures | votes | milestones]`",
+            usage: "Usage: `town! history [structures | votes | milestones]`",
         },
     },
     "📜 Structure Commands": {
-        add_structure: {
+        "structure add": {
             description: "Adds a new structure.",
-            usage: "Usage: `!add_structure <name> category=<category>`",
+            usage: "Usage: `town! structure add name=\"StructureName\" category=\"CategoryName\"`",
         },
-        remove_structure: {
+        "structure remove": {
             description: "Removes an existing structure.",
-            usage: "Usage: `!remove_structure <name>`",
+            usage: "Usage: `town! structure remove name=\"StructureName\"`",
         },
-        update_structure: {
+        "structure update": {
             description: "Updates a structure's category.",
-            usage: "Usage: `!update_structure <name> category=<new_category>`",
+            usage: "Usage: `town! structure update name=\"StructureName\" category=\"NewCategory\"`",
         },
-        structures: {
+        "structure list": {
             description: "Lists all structures and levels.",
-            usage: "Usage: `!structures [category]`",
+            usage: "Usage: `town! structure list [category]`",
         },
-        upgrade: {
+        "structure upgrade": {
             description: "Upgrades a structure if enough votes exist.",
-            usage: "Usage: `!upgrade <structure_name>`",
+            usage: "Usage: `town! structure upgrade name=\"StructureName\"`",
         },
     },
     "📊 Voting Commands": {
-        check_votes: {
+        "votes check": {
             description: "Checks votes for a structure.",
-            usage: "Usage: `!check_votes <structure_name>`",
+            usage: "Usage: `town! votes check name=\"StructureName\"`",
         },
-        end_adventure: {
-            description: "Starts structure voting.",
-            usage: "Usage: `!end_adventure @players`",
+        "adventure end": {
+            description: "Ends an adventure and starts voting.",
+            usage: "Usage: `town! adventure end @players`",
         },
     },
     "📏 Milestone Commands": {
-        milestones: {
+        "milestones list": {
             description: "Lists milestones for structures.",
-            usage: "Usage: `!milestones [structure_name]`",
+            usage: "Usage: `town! milestones list [structure_name]`",
         },
-        set_milestones: {
+        "milestones set": {
             description: "Sets milestone votes required for leveling up.",
-            usage: "Usage: `!set_milestones <structure_name> <votes_level_2> <votes_level_3> ...`",
+            usage: "Usage: `town! milestones set name=\"StructureName\" votes=\"1 2 3 4 5 6 7 8 9 10\"`",
         },
     },
 };
@@ -93,7 +93,7 @@ async function sendInteractiveHelp(message: Message) {
         .setTitle("📖 Town Manager Help")
         .setDescription("Select a command from the dropdown below to see details.")
         .setColor(0x3498db)
-        .setFooter({ text: "Use !help <command> to get help directly." });
+        .setFooter({ text: "Use town! help <command> to get help directly." });
 
     const menu = new StringSelectMenuBuilder()
         .setCustomId("help_menu")
@@ -101,7 +101,7 @@ async function sendInteractiveHelp(message: Message) {
         .addOptions(
             Object.entries(commandCategories).flatMap(([category, commands]) =>
                 Object.keys(commands).map((cmd) => ({
-                    label: `!${cmd} (${category})`,
+                    label: `town! ${cmd} (${category})`,
                     description: commands[cmd].description,
                     value: cmd,
                 }))
@@ -125,7 +125,7 @@ async function sendCommandHelp(target: Message | StringSelectMenuInteraction, co
     }
 
     const embed = new EmbedBuilder()
-        .setTitle(`📖 Help: \`!${commandName}\``)
+        .setTitle(`📖 Help: \`town! ${commandName}\``)
         .setDescription(`${commandInfo.description}\n\n${commandInfo.usage}`)
         .setColor(0x3498db);
 
@@ -146,8 +146,8 @@ async function sendCommandSuggestion(target: Message | StringSelectMenuInteracti
     );
 
     const response = closestMatch
-        ? `❌ Unknown command \`!${invalidCommand}\`. Did you mean \`!${closestMatch}\`?`
-        : `❌ Unknown command \`!${invalidCommand}\`. Use \`!help\` to see available commands.`;
+        ? `❌ Unknown command \`town! ${invalidCommand}\`. Did you mean \`town! ${closestMatch}\`?`
+        : `❌ Unknown command \`town! ${invalidCommand}\`. Use \`town! help\` to see available commands.`;
 
     if (target instanceof Message) {
         await target.reply(response);

@@ -29,6 +29,22 @@ export class TownDatabase {
             );
         });
     }
+    async getStructureByName(guildId: string, structureName: string): Promise<Structure | null> {
+        return new Promise((resolve, reject) => {
+            this.db.get(
+                "SELECT id, guild_id, name, level, max_level, category FROM structures WHERE guild_id = ? AND name = ?",
+                [guildId, structureName],
+                (err, row: Structure | undefined) => {
+                    if (err) {
+                        Logger.logError("getStructureByName", err);
+                        reject(err);
+                    } else {
+                        resolve(row || null);
+                    }
+                }
+            );
+        });
+    }
 
     async addStructure(guildId: string, name: string, category: string = "General"): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -85,6 +101,23 @@ export class TownDatabase {
                 (err, rows: Milestone[]) => {
                     if (err) {
                         Logger.logError("getMilestones", err);
+                        reject(err);
+                    } else resolve(rows);
+                }
+            );
+        });
+    }
+    async getMilestonesByStructure(guildId: string, structureName: string): Promise<Milestone[]> {
+        return new Promise((resolve, reject) => {
+            this.db.all(
+                `SELECT m.structure_id, m.level, m.votes_required, m.guild_id
+                FROM milestones m
+                JOIN structures s ON m.structure_id = s.id
+                WHERE m.guild_id = ? AND s.name = ?`,
+                [guildId, structureName],
+                (err, rows: Milestone[]) => {
+                    if (err) {
+                        Logger.logError("getMilestonesByStructure", err);
                         reject(err);
                     } else resolve(rows);
                 }

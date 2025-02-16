@@ -1,11 +1,11 @@
 import { Message } from "discord.js";
-import { Logger } from "../utils/logger"
+import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
 
 /**
  * Ends an adventure and starts a voting session.
  */
-export async function endAdventure(message: Message, args: string[], db: TownDatabase, guildId: string): Promise<void> {
+export async function endAdventure(message: Message, args: Record<string, string>, db: TownDatabase, guildId: string): Promise<void> {
     const mentionedPlayers = message.mentions.users.map((user) => user.id);
 
     if (mentionedPlayers.length === 0) {
@@ -14,10 +14,12 @@ export async function endAdventure(message: Message, args: string[], db: TownDat
     }
 
     try {
+        await db.startVoteSession(guildId, mentionedPlayers);
+
         await db.logHistory(
             guildId,
             "adventure_ended",
-            `⚔️ Ended an adventure`,
+            `⚔️ Ended an adventure and started a voting session for ${mentionedPlayers.length} players.`,
             message.author.username
         );
 
