@@ -16,6 +16,13 @@ const commandMap: Record<string, Record<string, CommandFunction>> = {
         remove: removeStructure,
         update: updateStructure,
         list: async (msg, args, db, guildId) => listStructures(msg, args, db, guildId),
+        upgrade: async (msg, args, db, guildId) => {
+            if (args.name) {
+                await requestUpgradeConfirmation(msg, args, db, guildId);
+            } else {
+                await msg.reply("❌ Please provide a structure name.");
+            }
+        },
     },
     milestone: {
         set: setMilestone,
@@ -29,15 +36,6 @@ const commandMap: Record<string, Record<string, CommandFunction>> = {
     },
     adventure: {
         end: endAdventure,
-    },
-    upgrade: {
-        confirm: async (msg, args, db, guildId) => {
-            if (args.name) {
-                await requestUpgradeConfirmation(msg, args, db, guildId);
-            } else {
-                await msg.reply("❌ Please provide a structure name.");
-            }
-        },
     },
 };
 
