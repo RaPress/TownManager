@@ -11,8 +11,8 @@ RUN npm install
 # Copy the bot source code
 COPY . .
 
-# Expose required ports (not needed for a Discord bot)
-# EXPOSE 3000
+# Set a volume to persist the database
+VOLUME /app/data
 
 # Start the bot
 CMD ["npm", "run", "dev"]

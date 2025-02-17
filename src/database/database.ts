@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { Database } from "sqlite3";
 
-const dbPath = path.resolve(__dirname, "../town_manager.db");
+const dbPath = path.resolve(__dirname, "../data/town_manager.db");
 
 // ✅ Check if the database file exists before opening
 if (!fs.existsSync(dbPath)) {
