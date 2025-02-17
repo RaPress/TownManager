@@ -58,7 +58,7 @@ export function registerCommands(bot: Client, db: TownDatabase) {
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
             await commandMap[subcommand][action](message, args, db, guildId);
-        } else {
+        } else if (!content.startsWith("town! help")) {
             await message.reply("❌ Invalid command. Use `town! help` for a list of commands.");
         }
     });
