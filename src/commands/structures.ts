@@ -12,7 +12,7 @@ export async function addStructure(
     guildId: string
 ): Promise<void> {
     const structureName = options["name"];
-    const category = options["category"] || "General"; // Default category if not provided
+    const category = options["category"] || options["cat"] || "General";
 
     if (!structureName) {
         await message.reply("❌ Structure name cannot be empty.");
