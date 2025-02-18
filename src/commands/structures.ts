@@ -118,23 +118,44 @@ export async function updateStructure(
     guildId: string
 ): Promise<void> {
     const structureName = options["name"];
-    const newCategory = options["category"];
+    const newName = options["newname"];
+    const newCategory = options["category"] || options["cat"];
 
-    if (!structureName || !newCategory) {
-        await message.reply("❌ You must provide a structure name and new category.");
+    if (!structureName) {
+        await message.reply("❌ You must provide a structure name.");
         return;
     }
 
     try {
-        await db.updateStructureCategory(guildId, structureName, newCategory);
-        await db.logHistory(
-            guildId,
-            "structure_updated",
-            `🔄 Updated structure: **${structureName}** → Category: **${newCategory}**`,
-            message.author.username
-        );
+        if (newCategory) {
+            // ✅ Update category
+            await db.updateStructureCategory(guildId, structureName, newCategory);
+            await db.logHistory(
+                guildId,
+                "structure_updated",
+                `🔄 Updated structure: **${structureName}** → Category: **${newCategory}**`,
+                message.author.username
+            );
 
-        await message.reply(`✅ Structure **${structureName}** updated to category **${newCategory}**.`);
+            await message.reply(`✅ Structure **${structureName}** updated to category **${newCategory}**.`);
+        }
+
+        if (newName) {
+            // ✅ Rename structure
+            await db.renameStructure(guildId, structureName, newName);
+            await db.logHistory(
+                guildId,
+                "structure_renamed",
+                `✏️ Renamed structure: **${structureName}** → **${newName}**`,
+                message.author.username
+            );
+
+            await message.reply(`✅ Structure **${structureName}** renamed to **${newName}**.`);
+        }
+
+        if (!newCategory && !newName) {
+            await message.reply("❌ You must provide either a new category or a new name.");
+        }
     } catch (error) {
         await Logger.handleError(message, "updateStructure", error, "❌ Failed to update structure.");
     }

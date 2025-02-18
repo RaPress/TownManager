@@ -93,6 +93,21 @@ export class TownDatabase {
         });
     }
 
+    async renameStructure(guildId: string, oldName: string, newName: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.db.run(
+                "UPDATE structures SET name = ? WHERE guild_id = ? AND name = ?",
+                [newName, guildId, oldName],
+                (err) => {
+                    if (err) {
+                        Logger.logError("renameStructure", err);
+                        reject(err);
+                    } else resolve();
+                }
+            );
+        });
+    }
+
     async getMilestones(guildId: string): Promise<Milestone[]> {
         return new Promise((resolve, reject) => {
             this.db.all(

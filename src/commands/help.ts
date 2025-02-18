@@ -43,29 +43,27 @@ const commandCategories: Record<string, Record<string, { description: string; us
     "📜 Structure Commands": {
         "structure add": {
             description: "Adds a new structure.",
-            usage: "Usage: `town! structure add name=\"StructureName\" category=\"CategoryName\"`",
+            usage: "Usage: `town! structure add name=\"Structure Name\" category=\"Category Name\"`",
         },
         "structure remove": {
             description: "Removes an existing structure.",
-            usage: "Usage: `town! structure remove name=\"StructureName\"`",
+            usage: "Usage: `town! structure remove name=\"Structure Name\"`",
         },
         "structure update": {
-            description: "Updates a structure's category.",
-            usage: "Usage: `town! structure update name=\"StructureName\" category=\"NewCategory\"`",
+            description: "Updates a structure's category or renames it.",
+            usage: "Usage:\n" +
+                "• `town! structure update name=\"Structure Name\" category=\"New Category\"`\n" +
+                "• `town! structure update name=\"Old Name\" newName=\"New Name\"`",
         },
         "structure list": {
-            description: "Lists all structures and levels.",
+            description: "Lists all structures or filters by category.",
             usage: "Usage: `town! structure list [category]`",
-        },
-        "structure upgrade": {
-            description: "Upgrades a structure if enough votes exist.",
-            usage: "Usage: `town! structure upgrade name=\"StructureName\"`",
         },
     },
     "📊 Voting Commands": {
         "vote check": {
             description: "Checks votes for a structure.",
-            usage: "Usage: `town! vote check name=\"StructureName\"`",
+            usage: "Usage: `town! vote check name=\"Structure Name\"`",
         },
         "adventure end": {
             description: "Ends an adventure and starts voting.",
@@ -75,14 +73,15 @@ const commandCategories: Record<string, Record<string, { description: string; us
     "📏 Milestone Commands": {
         "milestone list": {
             description: "Lists milestones for structures.",
-            usage: "Usage: `town! milestone list name=\"StructureName\"`",
+            usage: "Usage: `town! milestone list name=\"Structure Name\"`",
         },
         "milestone set": {
             description: "Sets milestone votes required for leveling up.",
-            usage: "Usage: `town! milestone set name=\"StructureName\" level=3 votes=10`",
+            usage: "Usage: `town! milestone set name=\"Structure Name\" level=3 votes=10`",
         },
     },
 };
+
 
 /**
  * Handles the `town! help` command.
