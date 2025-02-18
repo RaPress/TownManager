@@ -2,8 +2,9 @@ import {
     Message,
     EmbedBuilder,
     ActionRowBuilder,
-    StringSelectMenuBuilder,
-    StringSelectMenuInteraction
+    ButtonBuilder,
+    ButtonStyle,
+    ButtonInteraction,
 } from "discord.js";
 import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
@@ -30,16 +31,16 @@ export async function handleMilestoneCommand(
     }
 
     if (action === "set") {
-        await setMilestone(message, options, db, guildId);
+        await requestMilestoneConfirmation(message, options, db, guildId);
     } else {
         await listMilestones(message, options, db, guildId);
     }
 }
 
 /**
- * Sets a milestone for a structure.
+ * Requests confirmation before setting a milestone.
  */
-export async function setMilestone(
+export async function requestMilestoneConfirmation(
     message: Message,
     options: Record<string, string>,
     db: TownDatabase,
@@ -65,11 +66,65 @@ export async function setMilestone(
             return;
         }
 
-        await db.setMilestone(guildId, structure.id, levelNum, votesRequired);
-        await db.logHistory(guildId, "milestone_set", `🏆 Set milestone for **${name}** (Level **${levelNum}**) to require **${votesRequired}** votes.`, message.author.username);
-        await message.reply(`✅ Milestone for **${name}**, Level **${levelNum}** set to require **${votesRequired}** votes.`);
+        // **Send confirmation prompt**
+        const embed = new EmbedBuilder()
+            .setTitle("🏆 Confirm Milestone Setup")
+            .setDescription(
+                `Are you sure you want to set a milestone for **${name}**?\n\n` +
+                `🔹 **Level:** ${levelNum}\n` +
+                `🔹 **Required Votes:** ${votesRequired}`
+            )
+            .setColor(0xf1c40f);
+
+        const confirmButton = new ButtonBuilder()
+            .setCustomId(`confirm_milestone_${guildId}_${name}_${levelNum}_${votesRequired}`)
+            .setLabel("✅ Confirm")
+            .setStyle(ButtonStyle.Success);
+
+        const cancelButton = new ButtonBuilder()
+            .setCustomId(`cancel_milestone_${guildId}`)
+            .setLabel("❌ Cancel")
+            .setStyle(ButtonStyle.Danger);
+
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(confirmButton, cancelButton);
+
+        await message.reply({ embeds: [embed], components: [actionRow] });
     } catch (error) {
-        await Logger.handleError(message, "setMilestone", error, "❌ Error setting milestone.");
+        await Logger.handleError(message, "requestMilestoneConfirmation", error, "❌ Error requesting milestone setup.");
+    }
+}
+
+/**
+ * Handles user confirmation for milestone setup.
+ */
+export async function handleMilestoneInteraction(interaction: ButtonInteraction, db: TownDatabase) {
+    const { customId, user, guild } = interaction;
+    if (!guild) return;
+
+    if (!customId.startsWith("confirm_milestone_") && !customId.startsWith("cancel_milestone_")) return;
+
+    const [, action, guildId, name, level, votes] = customId.split("_");
+
+    if (action === "cancel") {
+        await interaction.reply({ content: "❌ Milestone setup canceled.", ephemeral: true });
+        return;
+    }
+
+    const levelNum = parseInt(level);
+    const votesRequired = parseInt(votes);
+
+    try {
+        const structure = await db.getStructureByName(guildId, name);
+        if (!structure) {
+            await interaction.reply({ content: `❌ Structure **${name}** not found.`, ephemeral: true });
+            return;
+        }
+
+        await db.setMilestone(guildId, structure.id, levelNum, votesRequired);
+        await db.logHistory(guildId, "milestone_set", `🏆 Set milestone for **${name}** (Level **${levelNum}**) to require **${votesRequired}** votes.`, user.username);
+        await interaction.reply({ content: `✅ Milestone for **${name}**, Level **${levelNum}** set to require **${votesRequired}** votes.`, ephemeral: true });
+    } catch (error) {
+        await Logger.handleError(interaction.message, "handleMilestoneInteraction", error, "❌ Error setting milestone.");
     }
 }
 
@@ -100,33 +155,6 @@ export async function listMilestones(
 }
 
 /**
- * Handles pagination for milestones.
- */
-export async function handleMilestoneInteraction(interaction: StringSelectMenuInteraction, db: TownDatabase) {
-    if (interaction.customId !== "milestone_page_select") return;
-
-    const guildId = interaction.guild?.id;
-    if (!guildId) return await interaction.reply({ content: "❌ Unable to determine server.", ephemeral: true });
-
-    try {
-        const pageIndex = parseInt(interaction.values[0], 10);
-        const structureName = interaction.message.embeds[0]?.title?.match(/for \*\*(.+?)\*\*/)?.[1];
-
-        const milestones = structureName
-            ? await db.getMilestonesByStructure(guildId, structureName)
-            : await db.getMilestones(guildId);
-
-        if (!milestones.length) return await interaction.reply({ content: "📜 No milestones found.", ephemeral: true });
-
-        await sendMilestonesPage(interaction.message as Message, milestones, pageIndex, db, guildId, structureName);
-        await interaction.deferUpdate();
-    } catch (error) {
-        await Logger.logError("handleMilestoneInteraction", error);
-        await interaction.reply({ content: "❌ Error fetching milestones.", ephemeral: true });
-    }
-}
-
-/**
  * Sends paginated milestone entries.
  */
 async function sendMilestonesPage(
@@ -148,22 +176,6 @@ async function sendMilestonesPage(
         .setColor(0x3498db)
         .setFooter({ text: "Select a page below to view more milestones." });
 
-    await message.reply({ embeds: [embed], components: totalPages > 1 ? [createPaginationMenu(totalPages)] : [] });
+    await message.reply({ embeds: [embed] });
     await db.logHistory(guildId, "milestone_list_checked", `📜 Checked milestones (Page ${pageIndex + 1})`, message.author.username);
-}
-
-/**
- * Creates a pagination select menu.
- */
-function createPaginationMenu(totalPages: number): ActionRowBuilder<StringSelectMenuBuilder> {
-    return new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
-        new StringSelectMenuBuilder()
-            .setCustomId("milestone_page_select")
-            .setPlaceholder("📜 Select a page")
-            .addOptions(Array.from({ length: totalPages }, (_, i) => ({
-                label: `📖 Page ${i + 1}`,
-                description: `View milestones ${i * ENTRIES_PER_PAGE + 1} - ${(i + 1) * ENTRIES_PER_PAGE}`,
-                value: `${i}`
-            })))
-    );
 }
