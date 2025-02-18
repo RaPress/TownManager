@@ -152,7 +152,7 @@ export async function updateStructure(
     guildId: string
 ): Promise<void> {
     const structureName = options["name"];
-    const newCategory = options["category"];
+    const newCategory = options["category"] || options["cat"];
     const newName = options["newName"];
 
     if (!structureName || (!newCategory && !newName)) {
