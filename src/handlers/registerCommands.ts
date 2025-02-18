@@ -1,6 +1,13 @@
 import { Client, Message } from "discord.js";
 import { TownDatabase } from "../database/db";
-import { addStructure, listStructures, removeStructure, updateStructure } from "../commands/structures";
+import {
+    addStructure,
+    listStructures,
+    removeStructure,
+    updateStructure,
+    handleAddStructureInteraction,
+    handleUpdateStructureInteraction
+} from "../commands/structures";
 import { setMilestone, listMilestones } from "../commands/milestones";
 import { fetchHistory } from "../commands/history";
 import { checkVotes } from "../commands/checkVotes";
@@ -44,9 +51,7 @@ export function registerCommands(bot: Client, db: TownDatabase) {
         if (message.author.bot || !message.guild) return;
 
         const content = message.content.trim();
-        const lowerCaseContent = content.toLowerCase();
-
-        if (!lowerCaseContent.startsWith("town!")) return;
+        if (!content.startsWith("town!")) return;
 
         const argsArray = content.split(/\s+/).slice(1);
         const subcommand = argsArray.shift()?.toLowerCase();
@@ -58,8 +63,22 @@ export function registerCommands(bot: Client, db: TownDatabase) {
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
             await commandMap[subcommand][action](message, args, db, guildId);
-        } else if (!lowerCaseContent.startsWith("town! help")) {
+        } else if (!content.startsWith("town! help")) {
             await message.reply("❌ Invalid command. Use `town! help` for a list of commands.");
+        }
+    });
+
+    bot.on("interactionCreate", async (interaction) => {
+        if (!interaction.isButton()) return;
+
+        console.log(`🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
+
+        if (interaction.customId.startsWith("confirm_add_") || interaction.customId.startsWith("cancel_add_")) {
+            await handleAddStructureInteraction(interaction, db);
+        }
+
+        if (interaction.customId.startsWith("confirm_update_") || interaction.customId.startsWith("cancel_update_")) {
+            await handleUpdateStructureInteraction(interaction, db);
         }
     });
 }
