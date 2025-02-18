@@ -8,7 +8,11 @@ import {
     handleAddStructureInteraction,
     handleUpdateStructureInteraction
 } from "../commands/structures";
-import { setMilestone, listMilestones } from "../commands/milestones";
+import {
+    handleMilestoneCommand,
+    handleMilestoneInteraction,
+    handleMilestonePagination
+} from "../commands/milestones";
 import { fetchHistory } from "../commands/history";
 import { checkVotes } from "../commands/checkVotes";
 import { requestUpgradeConfirmation } from "../commands/upgrade";
@@ -32,8 +36,7 @@ const commandMap: Record<string, Record<string, CommandFunction>> = {
         },
     },
     milestone: {
-        set: setMilestone,
-        list: async (msg, args, db, guildId) => listMilestones(msg, args, db, guildId),
+        command: async (msg, args, db, guildId) => handleMilestoneCommand(msg, args, db, guildId), // ✅ Now handles both "set" and "list"
     },
     history: {
         show: async (msg, args, db) => fetchHistory(msg, db),
@@ -69,16 +72,27 @@ export function registerCommands(bot: Client, db: TownDatabase) {
     });
 
     bot.on("interactionCreate", async (interaction) => {
-        if (!interaction.isButton()) return;
+        if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
 
-        console.log(`🔹 Button clicked: ${interaction.customId} by ${interaction.user.tag}`);
+        console.log(`🔹 Interaction received: ${interaction.customId} by ${interaction.user.tag}`);
 
-        if (interaction.customId.startsWith("confirm_add_") || interaction.customId.startsWith("cancel_add_")) {
-            await handleAddStructureInteraction(interaction, db);
+        // ✅ Structure Confirmation
+        if (interaction.isButton()) {
+            if (interaction.customId.startsWith("confirm_add_") || interaction.customId.startsWith("cancel_add_")) {
+                await handleAddStructureInteraction(interaction, db);
+            }
+            if (interaction.customId.startsWith("confirm_update_") || interaction.customId.startsWith("cancel_update_")) {
+                await handleUpdateStructureInteraction(interaction, db);
+            }
+            if (interaction.customId.startsWith("confirm_milestone_") || interaction.customId.startsWith("cancel_milestone_")) {
+                await handleMilestoneInteraction(interaction, db); // ✅ Now correctly handling **ButtonInteractions**
+            }
         }
 
-        if (interaction.customId.startsWith("confirm_update_") || interaction.customId.startsWith("cancel_update_")) {
-            await handleUpdateStructureInteraction(interaction, db);
+        // ✅ Milestone Pagination
+        if (interaction.isStringSelectMenu() && interaction.customId === "milestone_page_select") {
+            await handleMilestonePagination(interaction, db); // ✅ Separate function for pagination
         }
     });
+
 }

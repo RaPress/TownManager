@@ -5,11 +5,11 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ButtonInteraction,
+    StringSelectMenuInteraction,
 } from "discord.js";
 import { Logger } from "../utils/logger";
 import { TownDatabase } from "../database/db";
 import { Milestone } from "../database/dbTypes";
-import { parseArguments } from "../utils/commandParser";
 
 const ENTRIES_PER_PAGE = 10;
 
@@ -18,12 +18,11 @@ const ENTRIES_PER_PAGE = 10;
  */
 export async function handleMilestoneCommand(
     message: Message,
-    args: string[],
+    options: Record<string, string>,
     db: TownDatabase,
     guildId: string
 ): Promise<void> {
-    const parsed = parseArguments(args);
-    const { action, ...options } = parsed;
+    const action = options["action"]; // Extract action from options
 
     if (!action) {
         await message.reply("❌ Missing milestone action. Use `town! milestone set` or `town! milestone list`.");
@@ -36,6 +35,7 @@ export async function handleMilestoneCommand(
         await listMilestones(message, options, db, guildId);
     }
 }
+
 
 /**
  * Requests confirmation before setting a milestone.
@@ -125,6 +125,34 @@ export async function handleMilestoneInteraction(interaction: ButtonInteraction,
         await interaction.reply({ content: `✅ Milestone for **${name}**, Level **${levelNum}** set to require **${votesRequired}** votes.`, ephemeral: true });
     } catch (error) {
         await Logger.handleError(interaction.message, "handleMilestoneInteraction", error, "❌ Error setting milestone.");
+    }
+}
+
+export async function handleMilestonePagination(interaction: StringSelectMenuInteraction, db: TownDatabase) {
+    const guildId = interaction.guild?.id;
+    if (!guildId) {
+        await interaction.reply({ content: "❌ Unable to determine server.", ephemeral: true });
+        return;
+    }
+
+    try {
+        const pageIndex = parseInt(interaction.values[0], 10);
+        const structureName = interaction.message.embeds[0]?.title?.match(/for \*\*(.+?)\*\*/)?.[1];
+
+        const milestones = structureName
+            ? await db.getMilestonesByStructure(guildId, structureName)
+            : await db.getMilestones(guildId);
+
+        if (!milestones.length) {
+            await interaction.reply({ content: "📜 No milestones found.", ephemeral: true });
+            return;
+        }
+
+        await sendMilestonesPage(interaction.message as Message, milestones, pageIndex, db, guildId, structureName);
+        await interaction.deferUpdate();
+    } catch (error) {
+        await Logger.logError("handleMilestonePagination", error);
+        await interaction.reply({ content: "❌ Error fetching milestones.", ephemeral: true });
     }
 }
 
