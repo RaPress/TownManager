@@ -44,7 +44,9 @@ export function registerCommands(bot: Client, db: TownDatabase) {
         if (message.author.bot || !message.guild) return;
 
         const content = message.content.trim();
-        if (!content.toLowerCase().startsWith("town!")) return;
+        const lowerCaseContent = content.toLowerCase();
+
+        if (!lowerCaseContent.startsWith("town!")) return;
 
         const argsArray = content.split(/\s+/).slice(1);
         const subcommand = argsArray.shift()?.toLowerCase();
@@ -56,7 +58,7 @@ export function registerCommands(bot: Client, db: TownDatabase) {
 
         if (subcommand && action && commandMap[subcommand]?.[action]) {
             await commandMap[subcommand][action](message, args, db, guildId);
-        } else if (!content.toLowerCase().startsWith("town! help")) {
+        } else if (!lowerCaseContent.startsWith("town! help")) {
             await message.reply("❌ Invalid command. Use `town! help` for a list of commands.");
         }
     });
