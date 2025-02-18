@@ -8,7 +8,7 @@ export function parseArguments(argsArray: string[]): Record<string, string> {
     const joinedArgs = argsArray.join(" ");
 
     while ((match = regex.exec(joinedArgs)) !== null) {
-        const key = match[1];
+        const key = match[1].toLowerCase();
         let value = match[2];
 
         if (value.startsWith('"') && value.endsWith('"')) {
