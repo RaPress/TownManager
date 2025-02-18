@@ -9,7 +9,7 @@ import { TownDatabase } from "../database/db";
 import { HistoryLog } from "../database/dbTypes";
 import { Logger } from "../utils/logger";
 
-const ENTRIES_PER_PAGE = 5;
+const ENTRIES_PER_PAGE = 10;
 
 /**
  * Fetches and displays paginated town history.

@@ -10,7 +10,7 @@ import { TownDatabase } from "../database/db";
 import { Milestone } from "../database/dbTypes";
 import { parseArguments } from "../utils/commandParser";
 
-const ENTRIES_PER_PAGE = 5;
+const ENTRIES_PER_PAGE = 10;
 
 /**
  * Handles milestone-related commands (`set`, `list`).
